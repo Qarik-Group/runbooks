@@ -1,0 +1,34 @@
+
+---
+
+pipelines
+
+What's a pipeline?
+
+Why pipeline
+
+How to deploy the pipeline: repipe
+
+Specifying Automatic and Manual Environments
+
+How to Layout your Pipeline
+
+Slack Notifications
+
+Hipchat Nofications
+
+Email Notifications
+
+Stride Notification
+
+How to use Tagged Workers in a CI Pipeline
+
+Visualizing Pipelines
+
+How do I run smoke tests
+
+how to trigger manual deployments in pipelines
+
+How to debug deployment failure
+
+​	- auth failure:  repipe after rotate

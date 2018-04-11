@@ -1,0 +1,215 @@
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+
+nav {
+  background-color: #000;
+  color: #fff;
+  font-size: 11pt;
+  padding: 12px;
+  box-shadow: 0px 0px 12px #333;
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+
+  position: relative;
+  z-index: 100;
+}
+nav a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dotted #fff;
+}
+
+nav,header,h1,h2,h3,h4,h5,h6 {
+  font-family: sans-serif;
+}
+header {
+  background: linear-gradient(#dae8fc, #ffffff);
+  color: #000;
+  padding-top: 24px;
+  margin-bottom: 48px;
+
+  position: relative;
+  z-index: 90;
+}
+header h1 {
+  font-size: 72pt;
+  font-weight: bold;
+  text-align: center;
+}
+header h2 {
+  font-size: 24pt;
+  text-align: center;
+}
+
+#l, #m {
+	max-width: 50em;
+	margin: 0 auto;
+}
+#l > a {
+  font-family: sans-serif;
+  text-decoration: none;
+  color: #000;
+  font-size: 36pt;
+  display: block;
+  margin-top: 1em;
+}
+#m h2 { font-size: 22pt; margin-top: 2em; }
+#m h3 code {
+  display: block;
+  background-color: #333;
+  padding: 12px;
+  border-radius: 5px;
+  color: #fff;
+  font-family: monospace;
+  font-size: 14pt;
+  font-weight: normal;
+  line-height: 1.5em;
+  margin-top: 1.5em;
+  overflow-x: scroll;
+}
+#l > p,
+#m p {
+  font-size: 14pt;
+  line-height: 1.125em;
+  margin: 1em;
+}
+#m strong, #m b { font-weight: bold; }
+#m em, #m i { font-style: italic; }
+#m code, #m tt { font-family: monospace; font-weight: bold; }
+#m pre {
+	margin: 1em;
+}
+#m pre code {
+  display: block;
+  background-color: #333;
+  padding: 12px;
+  border-radius: 5px;
+  color: #fff;
+  font-family: monospace;
+  font-size: 14pt;
+  font-weight: normal;
+  line-height: 1.5em;
+  margin-bottom: 2em;
+  overflow-x: scroll;
+}
+
+#m a, footer a {
+  color: #0071bc;
+  font-weight: bold;
+  text-decoration: none;
+  border-bottom: 1px dotted #0071bc;
+}
+:target:before {
+  content:"";
+  display:block;
+  height:24px; /* fixed header height*/
+  margin:-24px 0 0; /* negative fixed header height */
+}
+
+#m ul {
+  list-style: disc;
+  padding-left: 4em;
+}
+#m ol {
+  list-style: decimal;
+  padding-left: 4em;
+}
+
+#m img {
+  max-width: 100%;
+  padding: 2px;
+  border: 1px solid #333;
+}
+
+
+#m > h2 {
+  cursor: pointer;
+  position: relative;
+  left: -32px;
+}
+#m > h2 .lnk {
+  visibility: hidden;
+  left: -32px;
+  width: 32px;
+  display: inline-block;
+  border: none;
+}
+#m > h2:hover .lnk {
+  visibility: visible;
+}
+#m > .ss { display: none; }
+
+footer {
+  margin-top: 72px;
+  text-align: center;
+  color: #999;
+  font-size: 10pt;
+  font-family: sans-serif;
+  padding: 24px;
+}
+
+
+.mobile  { display: none; }
+.desktop { display: flex; }
+
+@media only screen and (max-width: 800px) {
+  .desktop { display: none; }
+  .mobile  { display: flex; }
+
+  header h1 { font-size: 36pt; }
+  header h2 { font-size: 20pt; }
+  #l, #m {
+    margin: 0 12px;
+  }
+  #l > a {
+    font-size: 36pt;
+  }
+  #m > h2 { left: 0; }
+  #m > h2 .lnk,
+  #m > h2:hover .lnk { display: none }
+
+  #m pre code { font-size: 12pt; }
+}

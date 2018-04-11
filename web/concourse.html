@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Runbooks @Stark &amp; Wayne</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,intial-scale=1">
+</head>
+<body>
+  <nav class="desktop">
+    <span>Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All Runbooks</a></span>
+  </nav>
+  <nav class="mobile">
+    <span>&copy; <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All</a></span>
+  </nav>
+
+  <header>
+    <h1>Concourse</h1>
+    <h2></h2>
+  </header>
+
+  <div id="m">
+    <h2>Find Your Concourse Installation</h2>
+<p>The easiest way to find out the IP address of your Concourse is to
+interrogate BOSH for the deployment VM IPs:</p>
+<pre><code>$ bosh -d your-concourse vms
+Using environment 'https://10.0.0.4' as client 'admin'
+
+Task 5929. Done
+
+Deployment 'your-concourse'
+
+Instance                                      Process State  AZ  IPs        VM CID                                   VM Type
+db/99da7876-bbb6-45ba-a3f2-c47773bbaa8d       running        z1  10.0.2.0   vm-29139deb-7f04-4829-ade9-5cc650ea6557  small
+haproxy/257059b8-f995-4725-b494-32d22adf0fcc  running        z1  10.0.2.2   vm-c0afb5b1-1972-4135-98de-1912d4285a92  small
+web/207ce2a1-65d0-4988-b62e-f7246190cdd5      running        z1  10.0.2.3   vm-73caf2a9-aac3-4635-b3e7-3fa628af415d  small
+worker/7cfecc9b-d9ab-4659-8356-84ab331e2bb4   running        z1  10.0.2.1   vm-9965eb20-c6f6-4f16-ad7c-359645b8f598  runtime
+worker/ac17d59e-d03d-43a6-be86-4258c91d146c   running        z1  10.0.2.11  vm-55badb90-26d2-4d51-8ccb-0b74d25c1cfb  runtime
+worker/e52c1b40-d893-4828-83d5-20a575a66acd   running        z1  10.0.2.12  vm-a63c96fd-311f-4896-90ca-58c153d72c38  runtime
+
+6 vms
+
+Succeeded
+</code></pre>
+<p>The <code>haproxy</code> instance is the one terminating inbound API access,
+so that’s the IP we care about.</p>
+<h2>Log Into Concourse</h2>
+<p>To log into concourse from <em>the browser</em>, simply open up the web
+UI (either by name, if you have DNS hooked up to the Concourse
+haproxy instance, or by IP).</p>
+<p><img src="images/concourse/home-unauth.png" alt="Concourse Main Page"></p>
+<p>Then, select your Concourse team:</p>
+<p><img src="images/concourse/home-team.png" alt="Concourse Teams Page"></p>
+<p>(you probably only have a <code>main</code> team).</p>
+<p>For Github authentication, click the <em>login with Github</em> button.</p>
+<p><img src="images/concourse/login.png" alt="Concourse Login with Github"></p>
+<p>The first time you do this, you will need to authorize the Github
+endpoint to access your account information.  On subsequent
+authentication attempts, it should be seamless.</p>
+<p>To log in from the <em>command-line</em>, you’ll need to have <code>fly</code>
+installed.</p>
+<p>First, tell <code>fly</code> where your Concourse is:</p>
+<pre><code>$ fly -t my-ci login -c https://$IP -k
+logging in to team 'main'
+
+navigate to the following URL in your browser:
+
+    https://$IP/auth/github?team_name=main&amp;fly_local_port=$SOME_PORT
+
+or enter token manually:
+</code></pre>
+<p>If you are executing <code>fly</code> from the same machine that runs your
+browser instance, you can just visit the link and the Concourse
+server will communicate to the <code>fly</code> process through the browser.</p>
+<p>If you are running <code>fly</code> on a jumpbox or bastion host, the port
+connection won’t be properly wired up (your browser can’t
+communicate with the jumpbox instance of <code>fly</code>).  You can either
+omit the trailing <code>&amp;fly_local_port=...</code> on the URL you put in the
+browser, or leave it and let it fail.  In either case, the browser
+will display a bearer token that looks like this:</p>
+<pre><code>Bearer
+eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjc3JmIjoiZjhkZTEzYzUxMTAzYWYyNTMzN
+WE3MGE3ZGQwNzdlYzUxMGQxMzA2ZjlhNGZkZGZmNzAwOGEwMzU4YzQwYzAwOSIsImV4cCI6MTU
+yMjE3MDU1OCwiaXNBZG1pbiI6dHJ1ZSwidGVhbU5hbWUiOiJtYWluIn0.cbhjKKzDr7V0UjpuA
+F0yrpr7VFdc7baKH8gJ1w5WaLYpy0oeUjdgMPbM9Th04OsOWMKxAi6yQcHDj6mWDlKNaqjJrkn
+yMjE3MDU1OCwiaXNBZG1pbiI6dHJ1ZSwidGVhbU5hbWUiOiJtYWluIn0.cbhjKKzDr7V0UjpuA
+F0yrpr7VFdc7baKH8gJ1w5WaLYpy0oeUjdgMPbM9Th04OsOWMKxAi6yQcHDj6mWDlKNaqjJrkn
+4lqHk3NcudKUW-qxJatQf49iIDcIyJK4isX2qRiQMYGXEY44m3etbDd2VGoLMDsNNrUE-JHL73
+OS42qZJAD-hNz2jl8zxPek8md-oRA
+</code></pre>
+<p>(newlines added for clarity)</p>
+<p>You must copy the <em>entire string</em>, including the &quot;Bearer &quot; prefix,
+into the waiting prompt in terminal.</p>
+<p>Use <code>fly targets</code> to verify:</p>
+<pre><code>fly targets
+name   url             team  expiry
+my-ci  https://.../?   main  Tue, 19 Dec 2017 17:09:18 UTC
+</code></pre>
+<p>Your real IP / domain name shoud show up in the output.</p>
+<p>From now on, all of your <code>fly</code> commands will need the <code>-t my-ci</code>
+option, to target correctly.</p>
+<h2>Install <code>fly</code>, The Concourse CLI</h2>
+<p>If you have access to a browser, you can visit the Concourse URL
+and download the correct <code>fly</code> binary for your platform, by
+clicking on one of the icons on the main page:</p>
+<p><img src="images/concourse/home-unauth.png" alt="Concourse Main Page"></p>
+<p>For Linux jumpbox and bastion hosts, you can also use <code>curl</code> to
+download the Linux binary directly:</p>
+<pre><code>$ curl -Lo ~/bin/fly \
+       'https://$IP/api/v1/cli?arch=amd64&amp;platform=linux'
+$ chmod 0755 ~/bin/fly
+</code></pre>
+<p>The quotes on the URL are important, to keep your shell from
+backgrounding the first part (up to the <code>&amp;</code>) of the command.</p>
+<p>This also assumes you have a <code>~/bin</code> folder (you should) and that
+it is in your <code>$PATH</code> (it should be).  If necessary, add this to
+your <code>~/.bashrc</code>:</p>
+<pre><code>export PATH=$PATH:~/bin
+</code></pre>
+<p>You can verify that <code>fly</code> is working by running <code>fly -h</code>.</p>
+<p>As you upgrade Concourse, you will also need to update your local
+copy of <code>fly</code>.  Assuming you have logged into Concourse, you can
+easily update by running:</p>
+<pre><code>$ fly -t my-ci sync
+</code></pre>
+<p>This will contact the targeted Concourse (<code>my-ci</code>), download a new
+<code>fly</code> binary, and overwrite your locally-installed copy.</p>
+<h2>View Your Pipelines</h2>
+<p>From a browser, the list of pipelines is accessed via the
+three-bar icon in the top-left corner of the interface, which
+shows the sidebar.</p>
+<p><img src="images/concourse/pipeline.png" alt="Concourse Pipeline"></p>
+<p>Clicking on a pipeline in the sidebar brings up the main page,
+which has all of the inputs, outputs, and jobs that comprise the
+workflow.</p>
+<p>From the terminal (assuming you have installed <code>fly</code> and are
+logged in), you can run:</p>
+<pre><code>$ fly -t my-ci pipelines
+name                    paused  public
+blacksmith-genesis-kit  no      no
+bosh-genesis-kit        no      no
+concourse-genesis-kit   no      no
+jumpbox-genesis-kit     no      no
+shield-genesis-kit      no      no
+squid-genesis-kit       no      no
+vault-genesis-kit       no      no
+shieldproject.io        no      no
+prometheus-genesis-kit  no      no
+... etc ...
+</code></pre>
+<p>You can list the jobs on a single pipeline as well:</p>
+<pre><code>$ fly -t my-ci jobs -p concourse-genesis-kit
+name        paused  status     next
+testflight  no      succeeded  n/a
+rc          no      succeeded  n/a
+minor       no      succeeded  n/a
+major       no      n/a        n/a
+shipit      no      succeeded  n/a
+</code></pre>
+<p>Jobs that have never run have a status of <code>n/a</code>.</p>
+<h2>List Workers</h2>
+<p>NOTE: This task requires that <code>fly</code> is installed and that you are
+logged in.</p>
+<p>To list off all of the workers that have registered with your
+Concourse TSA, and their health, use <code>fly workers</code>:</p>
+<pre><code>$ fly -t my-ci workers
+name                                  containers  platform  tags  team  state    version
+7cfecc9b-e0cd-4f8d-b771-6c26b8782de3  6           linux     none  none  running  1.2
+ac17d59e-e92e-4304-a09e-9a5356996296  19          linux     none  none  running  1.2
+e52c1b40-1171-464e-89ac-07c60cb09d5d  17          linux     none  none  running  1.2
+</code></pre>
+<p>In sequestered network environments, you will have one contingent
+of workers for each separate network environment.  Those workers
+will have <em>tags</em> defined that help to partition the overall
+concourse into <em>zones</em> for purposes of deployment scheduling.</p>
+<h2>Trigger Pipeline Jobs</h2>
+<p>From the browser, you can click on the big <code>+</code> icon on any job to
+force it to run right now:</p>
+<p><img src="images/concourse/trigger.png" alt="Concourse Trigger Button"></p>
+<p>From the command-line, you can use <code>fly</code> (assuming it is installed
+and you are already logged in).</p>
+<p>First, find the pipeline, and inspect its jobs:</p>
+<pre><code>$ fly -t my-ci pipelines
+$ fly -t my-ci jobs -p my-pipeline
+</code></pre>
+<p>Then, trigger the pipeline/job:</p>
+<pre><code>$ fly -t my-ci trigger -j my-pipeline/my-job
+</code></pre>
+<h2>Pause and Unpause Pipelines</h2>
+<p>If you pause a pipeline, it will not execute, even if one of its
+inputs triggers it to.  This can be useful if you want to make
+sure Concourse isn’t building software or doing deployments in a
+chagne blackout window.</p>
+<p>You can pause a pipeline from the web UI by clicking on the
+⏸ icon next to the pipeline name in the sidebar.  Paused
+pipelines show up with a blue header in the web UI:</p>
+<p><img src="images/concourse/paused.png" alt="Concourse Paused Pipeline"></p>
+<p>To unpause, click the ▶ icon in the sidebar.</p>
+<p>To pause a pipeline from the command-line, you will need to
+install <code>fly</code> and make sure you are logged in.</p>
+<pre><code>$ fly -t my-ci pause-pipeline -p my-pipeline
+</code></pre>
+<p>To unpause:</p>
+<pre><code>$ fly -t my-ci unpause-pipeline -p my-pipeline
+</code></pre>
+<p>Note: Genesis always unpauses its pipelines after you repipe them.</p>
+<h2>Access Check and Task Containers</h2>
+<p>Concourse has a feature called <em>hijacking</em> or (more politically
+correct) <em>intercepting</em>, by which an operator can gain a remote
+shell on a check or task container and poke around.</p>
+<p>This is handy for troubleshooting failing pipelines, but the
+execution is hit or miss.  Concourse tends to only keep failed
+containers around for a brief period of time, to facilitate
+debugging.  Successful containers are destroyed immediately.</p>
+<p>Start by finding the job you are interested in:</p>
+<pre><code>$ fly -t my-ci pipelines
+$ fly -t my-ci jobs -p m-pipeline
+</code></pre>
+<p>Then, specify the pipeline/job in a call to <code>fly hijack</code>:</p>
+<pre><code>$ fly -t my-ci hijack -j my-pipeline/testflight
+1: build #51, step: git, type: get
+2: build #51, step: notify, type: get
+3: build #51, step: notify, type: put
+4: build #51, step: testflight, type: task
+choose a container: 4
+
+root@66d6cd55-345a-4078-7c5e-365c4e650c81:/tmp/build/778af108# ls /
+bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  scratch  srv  sys  tmp  usr  var
+
+root@66d6cd55-345a-4078-7c5e-365c4e650c81:/tmp/build/778af108# exit
+</code></pre>
+<p>You will note that containers in Concourse are often very bare and stripped
+down.  For example, in the above container, there is no <code>ping</code> utility.</p>
+<h2>Fix Broken Workers</h2>
+<p>A common cause of “drive-by” failures in CI is a misbehaving worker, often
+caused by an out-of-disk scenario.  In these cases, the easiest recourse is
+to forcibly recreate the workers via BOSH.</p>
+<p>Workers have no persistent state.  All of the interesting bits of Concourse
+are stored in the database node, which does have a persistent disk attached.
+Deleting and rebuilding workers has no lasting ill effects on a Concourse
+installation, although it does temporarily reduce capacity.  Of course, if
+your workers are unable to perform, you are already at reduced capacity.</p>
+<p>To recreate workers:</p>
+<pre><code>$ bosh -e your-env -d your-env-concourse recreate worker
+</code></pre>
+<p>This will redeploy just the <code>worker</code> instance group, assuming the rest of
+the Concourse deployment is healthy.</p>
+<p>If you operate in a distributed infrastructure with sequestered networks
+served by workers-only deployments, you will need to target the appropriate
+environment BOSH director and worker deployment, but the command is
+otherwise identical.</p>
+<h2>Determine What Triggered a Job</h2>
+<p>It can be helpful to know what input triggered a given job to run in a
+pipeline, especially with deployment pipelines that seem to run for no
+apparent reason.</p>
+<p>Concourse does give you a visual cue, but you have to know to look for it,
+and what it is.  Any input that triggers a job will have a lighter
+background than the others.  It’s subtle, but useful.</p>
+<p><img src="images/concourse/what-triggered.png" alt="Concourse Triggering Input"></p>
+<p>Here, even though we have two inputs to this job, it was the <code>git</code> resource that triggered the <code>rc</code> job, not the <code>version</code>.</p>
+<p>And now you know.</p>
+<h2>View Pipeline Configurations</h2>
+<p>Concourse has a complete manifest that it uses to run your
+pipeline.  You can use <code>fly</code> to retrieve this manifest.</p>
+<pre><code>$ fly -t ci get-pipeline -p name-of-pipeline
+</code></pre>
+<p>This will dump a (probably very large) YAML document, to standard
+output.  This YAML document describes the pipeline, in whole.</p>
+<h2>Configure a Pipeline</h2>
+<p>To create a new pipeline, assuming you have already written the
+YAML definition file (the “manifest”), all you need to do is:</p>
+<pre><code>$ fly -t ci set-pipeline -p name-of-pipeline path/to/def.yml
+</code></pre>
+<p>Note: for Genesis deployments, you should refer to the Genesis
+runbooks, since <code>genesis</code> actually manages the pipeline
+definition, and has first-class support for configuring Concourse
+on your behalf.</p>
+
+  </div>
+
+  <footer>
+    Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a>
+  </footer>
+
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript" src="runbook.js"></script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Runbooks @Stark &amp; Wayne</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,intial-scale=1">
+</head>
+<body>
+  <nav class="desktop">
+    <span>Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All Runbooks</a></span>
+  </nav>
+  <nav class="mobile">
+    <span>&copy; <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All</a></span>
+  </nav>
+
+  <header>
+    <h1>Jumpbox</h1>
+    <h2></h2>
+  </header>
+
+  <div id="m">
+    <h2>Access the Jumpbox via SSH</h2>
+<p>To ssh to the jumpbox, run:</p>
+<pre><code>$ ssh you@jumpbox-ip -i path/to/your/private.key
+</code></pre>
+<p>To make it easier to SSH to your jumpbox, setup an entry in your
+<code>~/.ssh/config</code> file:</p>
+<pre><code>Host jumpbox
+  User         you
+  Hostname     jumpbox-ip
+  IdentityFile path/to/your/private.key
+</code></pre>
+<p>Then, you can <code>ssh jumpbox</code> to connect.</p>
+<h2>Add a User to the Jumpbox</h2>
+<p>Several engineers will use a given Jumpbox, each of whom should
+have their own account, with their own SSH key.  This helps with
+both auditing and accountability, and also lets each person
+customize his or her environment (editor settings, prompt, shell,
+etc.)</p>
+<p>The list of users provisioned on the jumpbox is in the <code>users</code>
+param of the Genesis Jumpbox kit.  This is a YAML list.  To add
+new people, append new items to the list:</p>
+<pre><code>params:
+  users:
+    - name:  new-user
+      shell: /bin/bash
+      ssh_keys:
+        - ssh-rsa AAA.... user@host
+</code></pre>
+<p>Then, execute a <code>genesis deploy</code>, or let your Genesis CI/CD
+pipelines do the work.</p>
+
+  </div>
+
+  <footer>
+    Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a>
+  </footer>
+
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript" src="runbook.js"></script>
+</body>
+</html>

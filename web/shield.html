@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Runbooks @Stark &amp; Wayne</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,intial-scale=1">
+</head>
+<body>
+  <nav class="desktop">
+    <span>Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All Runbooks</a></span>
+  </nav>
+  <nav class="mobile">
+    <span>&copy; <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All</a></span>
+  </nav>
+
+  <header>
+    <h1>SHIELD</h1>
+    <h2>Data Protection</h2>
+  </header>
+
+  <div id="m">
+    <p>Shield is a data protection system that performs unattended and
+automatic backup tasks, according to a schedule you define.</p>
+<h2>Install the SHIELD CLI</h2>
+<p>The SHIELD CLI (v8+) does not currently come pre-installed on the
+Genesis-deployed jumpbox.</p>
+<p>The SHIELD project makes pre-compiled binaries available for
+download on its <a href="https://github.com/starkandwayne/shield/releases">Github releases page</a>.  Download the
+correct binary for your platform, make it executable, and put it
+somewhere in your <code>$PATH</code>.</p>
+<h2>Authenticate to SHIELD</h2>
+<p>To talk to SHIELD, you first have to <em>target</em> a SHIELD Core.  The
+SHIELD Core is the brains of a SHIELD installation; it handles the
+scheduling and configuration of jobs, the execution of backup and
+restore tasks, authentication, etc.</p>
+<p>To target a SHIELD Core, use <code>shield api</code>:</p>
+<pre><code>$ shield api https://10.200.130.8 my-shield
+my-shield  (https://10.200.130.8)  OK
+SHIELD Buffalo Lab
+</code></pre>
+<p>(You can specify the alias and the URL in either order).</p>
+<p>Once you’ve set up the target, you can activate it by passing the
+<code>-c</code> option to all of your SHIELD commands, i.e.:</p>
+<pre><code>$ shield -c my-shield jobs
+</code></pre>
+<p>Or, you can set the <code>$SHIELD_CORE</code> environment variable:</p>
+<pre><code>$ export SHIELD_CORE=my-shield
+$ shield jobs
+</code></pre>
+<p>Finally, in order to use the SHIELD Core, you’ll need to
+authenticate with credentials:</p>
+<pre><code>$ shield -c my-shield login
+SHIELD Username: admin
+SHIELD Password:
+logged in successfully
+</code></pre>
+<p>The default credentials for SHIELD are <code>admin</code> (username) and
+<code>shield</code> (password).  You should change these as soon as you can.</p>
+<p>To check the status of SHIELD:</p>
+<pre><code>$ shield -c my-shield status
+SHIELD Buffalo Lab v8.0.8
+API Version 2
+
+---[ MOTD ]-------------------------------------
+Welcome to SHIELD!
+
+------------------------------------------------
+</code></pre>
+<p>To log in via the web interface, just open the SHIELD Core URL in
+your browser of choice, and enter your credentials:</p>
+<p><img src="images/shield/ui-login.png" alt="SHIELD Login Screen"></p>
+<h2>List Targeted SHIELD Cores</h2>
+<p>You can see what cores you have targeted using:</p>
+<pre><code>$ shield cores
+Name       URL                   Verify TLS?
+====       ===                   ===========
+my-shield  https://10.200.130.8  yes
+</code></pre>
+<p>Each core will be listed, alongside the SHIELD URL (whatever was
+given to <code>shield api</code>) and whether or not the <code>shield</code> CLI will
+verify the TLS certificates that the SHIELD Core presents.</p>
+<h2>Initialize a SHIELD</h2>
+<p>When SHIELD is first deployed, it has a blank Vault, and cannot do
+much of anything.  An operator must first <em>initialize</em> the SHIELD,
+selecting a master password in the process.</p>
+<p>This master password will be used to encrypt the Vault
+credentials.  SHIELD does not keep any record of this password.
+You must save this password in an external location, and keep it
+safe.</p>
+<p>You can initialize a new SHIELD from the command-line via <code>shield init</code>:</p>
+<pre><code>$ shield api https://10.200.130.8 my-shield
+$ shield -c my-shield init
+New SHIELD Core master password:
+Confirm new master password:
+SHIELD core unlocked successfully.
+BELOW IS YOUR FIXED KEY FOR RECOVERING FIXED-KEY BACKUPS.
+SAVE THIS IN A SECURE LOCATION.
+----------------------------------------------------------------
+02F63642CF3283CE826776A181D4DE6C18D9CD6ACF1C85052B0363FD93E85C67
+F46971070951681DE62D1F9E240D247E254BC1787A4DE347B23416F6AEA39EEB
+15CF4C3FDBEB2D7CEE54CA7D79789752B3458D0C4EBD3AF1B888605A52739002
+E7D8B1B428FAD663EB74B385842C3A97122F979738281849C73A2E2DA39F2524
+3C4F8AC2F8AFB04FC7F1E4CFD01CDFC607DB18529F5592AE5DEB6352F3B2EB14
+9C4A2248FB2534DBB58DB7CC498282AD57766A0EF90302457352E35B2B38BD8F
+C2CCAE48296508FA4DBFEBDFBD18A5C0389689F12650D17358B0BC4235A023F4
+68C38A658AEC6C19C7AD58DFB6A62B68FD218D98B34C679129459DA51B9D8BC4
+----------------------------------------------------------------
+</code></pre>
+<p>This <em>fixed key</em> is necessary for backing up SHIELD itself.  Store
+it somewhere safe, probably next to your master password.</p>
+<p>If you prefer the web interface, all you need to do is log in.
+In the header pane, you should see a message about SHIELD being
+<strong>uninitialized</strong>, like this:</p>
+<p><img src="images/shield/ui-uninit.png" alt="SHIELD Uninitialized Header"></p>
+<p>Clicking on any link in the main panel will bring up the
+initialization screen:</p>
+<p><img src="images/shield/ui-init.png" alt="SHIELD Initialization Form"></p>
+<p>Enter your new master password, twice, and SHIELD will go
+configure itself and unlock.  As with the CLI method, you will be
+presented with a <em>fixed key</em> that will be used for specific
+backups (i.e. SHIELD itself).  You’ll want to store that somewhere
+safe and secure, outside the scope of the systems you are backing
+up (don’t put it in Vault!)</p>
+<p><img src="images/shield/ui-initialized.png" alt="SHIELD Initialized Screen"></p>
+<h2>My SHIELD is Locked!</h2>
+<p>When SHIELD reboots, its internal Vault also reboots, and comes up
+sealed.  When this happens, SHIELD reports itself as “locked”.
+While locked, SHIELD will allow non-system users to login and
+manage their jobs, pause and unpause them, change schedules, etc.
+It will <strong>not</strong> run backup tasks, because it has no Vault to
+generate encryption keys.</p>
+<p>In contrast, system-level operators logging into the web
+interface will be unable to do anything until they provide the
+master password to unlock.</p>
+<p><img src="images/shield/ui-locked.png" alt="SHIELD Locked Screen"></p>
+<p>This can also be accomplished from the command-line:</p>
+<pre><code>$ shield unlock
+SHIELD Core master password:
+SHIELD core unlocked successfully.
+</code></pre>
+<h2>Change the SHIELD Master Password</h2>
+<p>If you believe your SHIELD master password has been compromised,
+you can rekey the SHIELD Core to set a new one.  This will <em>not</em>
+adversely affect previously taken backup archives; they will
+continue to function, and can be restored at any time.</p>
+<p>To rekey SHIELD via the command-line:</p>
+<pre><code>$ shield rekey
+Current master password:
+New SHIELD Core master password:
+Confirm new master password:
+SHIELD core rekeyed successfully.
+</code></pre>
+<p>The new master password will be required the next time SHIELD is
+rebooted.</p>
+<h2>What is a “tenant” / Why do I need one?</h2>
+<p>SHIELD has a robust access control system that allows several
+teams to co-exist peacefully in one installation, without stepping
+on each other’s toes.  This is referred to as <em>multi-tenancy</em>.</p>
+<p>Several of the “objects” that SHIELD manages, like job definitions
+and target data system configurations, belong to a single tenant.</p>
+<p>You can list the tenants you have access to on the command-line:</p>
+<pre><code>$ shield tenants
+UUID                                  Name
+====                                  ====
+6f7643e2-77fd-448a-bb44-fb53d757a62d  tenant1
+f3072633-4944-4423-b8b7-7e0be968521c  starkandwayne
+1ab18dc3-714f-402e-9be0-d5343be5bed7  CF Community
+</code></pre>
+<p>To specify a specific tenant, i.e. to look for their jobs or
+targets, you have to give the <code>shield</code> utility the <code>-t</code> or
+<code>--tenant</code> option.  You can specify tenants either by name (easier)
+or UUID (more accurate).  You can also set the <code>$SHIELD_TENANT</code>
+environment variable.</p>
+<p>In the web interface, you always operate inside of the context of
+a single tenant, which you can change via the account menu in the
+top right-hand corner:</p>
+<p><img src="images/shield/account-menu.png" alt="Account Menu"></p>
+<h2>Configure a new Backup Job</h2>
+<p>To set up a new backup job, you need to know four things:</p>
+<ol>
+<li>What to backup (the <em>target</em>)</li>
+<li>When to backup (the <em>schedule</em>)</li>
+<li>Where to store the backup archives (the <em>store</em>)</li>
+<li>How long to keep the archives (the <em>retention policy</em>)</li>
+</ol>
+<p>The SHIELD web user interface provides a guided wizard for
+configuring a new backup job, which can be accessed from the
+sidebar:</p>
+<p><img src="images/shield/cfg-sidebar.png" alt="Configure Backup Job Sidebar"></p>
+<p>This is a three-stage wizard.  First, you’ll configure your target
+data system, the thing you want to back up.</p>
+<p><img src="images/shield/cfg-target.png" alt="Configure Target Data System"></p>
+<p>The <em>Name</em> is important; it’s how you and other operators will
+refer to the system, and how SHIELD will display the system on the
+<em>Systems</em> page.  Make it memorable, and unique.</p>
+<p><em>Notes</em> are optional but highly encouraged.</p>
+<p>The <em>Agent</em> dropdown lists all the registered SHIELD Agents that
+you can ask to perform the backup and restore tasks.  Usually,
+this is the agent co-located on the data system, but it could be
+an “external” agent if your backup plugin uses the network to
+facilitate data exchange.</p>
+<p>Once you select an agent, you’ll need to select the plugin to use
+for extracting data from the system, and then configure that
+plugin:</p>
+<p><img src="images/shield/cfg-target-plugin.png" alt="Plugin Selection and Configuration"></p>
+<p>Next, you’ll configure the schedule for your new backup job:</p>
+<p><img src="images/shield/cfg-schedule.png" alt="Job Schedule Selection"></p>
+<p>Then, configure the retention policy, either by selecting a
+pre-existing one, or creating a new one:</p>
+<p><img src="images/shield/cfg-retention.png" alt="Job Retention Policy Select"></p>
+<p>Next, select where to keep the backup archives, or configure a new
+storage system:</p>
+<p><img src="images/shield/cfg-store.png" alt="Job Storage Selection"></p>
+<p>Finally, review your new job details and click the save button.</p>
+<p><img src="images/shield/cfg-review.png" alt="Job Review"></p>
+<h2>Execute a Backup Job Manually</h2>
+<p>SHIELD let’s you kick off ad hoc backup job runs, either via the
+command-line, or the web interface.  In either case, the scheduled
+runs of the backup job are unperturbed.</p>
+<p>From the web interface, you can click the <em>run now</em> link from the
+job’s heads-up card:</p>
+<p><img src="images/shield/run-now.png" alt="Job Card &quot;run now&quot; Link"></p>
+<p>From the command-line, first get a list of jobs:</p>
+<pre><code>$ shield jobs
+UUID                                  Name   Summary  Schedule       Status  Policy      SHIELD Agent       Target           Store       Fixed-Key
+====                                  ====   =======  ========       ======  ======      ============       ======           =====       =========
+691d2441-995b-48a4-ac03-fc188667bee6  Daily           daily at 3:00          Short-Term  10.200.130.8:5444  Important Files  Some Cloud  false
+</code></pre>
+<p>(Remember to set your tenant via <code>-t ...</code> or <code>SHIELD_TENANT=...</code>)</p>
+<p>Then, trigger an ad hoc backup run:</p>
+<pre><code>$ shield run-job 691d2441-995b-48a4-ac03-fc188667bee6
+Run job Daily in tenant starkandwayne? [y/N] y
+Scheduled ad hoc backup job run
+</code></pre>
+<h2>Restore a Backup Archive</h2>
+<p>The SHIELD web interface has a guided wizard that takes you through the
+steps of restoring a backup archive to a data system.  You can find it
+linked from the sidebar:</p>
+<p><img src="images/shield/restore-sidebar.png" alt="Restore From a Backup Sidebar"></p>
+<p>This wizard will ask a few questions, to help you find the right system to
+restore, and the correct archive to pull back and replay.  First, what do
+you need to restore?</p>
+<p><img src="images/shield/restore-target.png" alt="Restore Target Selection"></p>
+<p>Next, SHIELD will show you all of the archives that have been made from this
+target system, and gives a lot more prominence and visual weight to the most
+recent one.</p>
+<p><img src="images/shield/restore-archive.png" alt="Restore Archive Selection"></p>
+<p>Finally, you get to a review screen, to make sure you are certain that you
+want to perform this operation.  Remember: data restoration can be a
+disruptive process.</p>
+<p><img src="images/shield/restore-review.png" alt="Restore Operation Review"></p>
+<p>You can also do this via the command-line.  First get a list of protected
+data systems:</p>
+<pre><code>$ shield targets
+UUID                                  Name             Plugin  SHIELD Agent       Configuration
+====                                  ====             ======  ============       =============
+4a642c3c-1f45-4c62-af03-f9120db4ed58  Important Files  fs      10.200.130.8:5444  {
+                                                                                    &quot;base_dir&quot;: &quot;/var/vcap/store&quot;,
+                                                                                    &quot;include&quot;: &quot;*.bak, ~&quot;
+                                                                                  }
+</code></pre>
+<p>(Remember to set your tenant via <code>-t ...</code> or <code>SHIELD_TENANT=...</code>)</p>
+<p>Then, get the list of backup archives that exist for that target:</p>
+<pre><code>$ shield archives --target 'Important Files'
+UUID                                  Key                                                                     Status
+====                                  ===                                                                     ======
+c2d0e613-31ca-42a9-80fe-55ce2f916ce1  demo/2018/03/28/2018-03-28-175905-0252eddd-977c-4aed-b2ec-3ad651807cd9  valid
+</code></pre>
+<p>Finally, do a SHIELD restore (using <em>your</em> archive UUID):</p>
+<pre><code>$ shield restore-archive c2d0e613-31ca-42a9-80fe-55ce2f916ce1
+</code></pre>
+<h2>Set up new Cloud Storage</h2>
+<p>SHIELD uses Cloud Storage systems to store backups off-site.  You can
+configure a wide variety of backend systems, including Amazon S3, Scality,
+WebDAV, Google Cloud Storage, Azure Blobstore, and many more.</p>
+<p>From the web interface, click on the <em>Configure a New Cloud Storage System</em>
+link on the <em>Storage</em> page:</p>
+<p><img src="images/shield/storage-link.png" alt="Storage Page with New Link"></p>
+<p>You’ll need to name your cloud storage, and can optional provide a more
+detailed description that will be shown to SHIELD users.  The <em>threshold</em> is
+used for triggering alerts in the web interface header panel, when too much
+of the storage budget has been used.</p>
+<p>The <em>agent</em> you select determines which storage plugins you can use, and how
+to configure them.</p>
+<p><img src="images/shield/storage-cfg.png" alt="Storage Plugin Configuration"></p>
+<h2>How Can I Share Storage Configuration Across Tenants?</h2>
+<p>Cloud Storage systems are normally private to a tenant.  If you are
+site-level SHIELD administrator / operator, you can create <em>Global</em> Cloud
+Storage systems that will be made available to all tenants.  Most users will
+not be able to view the configuration of this global storage, but will be
+able to configure their backup jobs to use it.</p>
+<p>You can create a global cloud storage system from the <em>SHIELD Admin
+Backend</em>:</p>
+<p><img src="images/shield/admin-backend.png" alt="Admin Backend"></p>
+<h2>Can I Share Retention Policies Across Tenants?</h2>
+<p>Sort of.</p>
+<p>Unlike global cloud storage, retention policies are strictly per-tenant.
+What you <em>can</em> do, however, is define <em>Retention Policy Templates</em>, which
+will be copied into every subsequent tenant you create.  They look just like
+regular retention policies, but if a user modified their copy, it won’t
+affect any other tenants.</p>
+<p>You can create a retention policy template from the <em>SHIELD Admin Backend</em>:</p>
+<p><img src="images/shield/admin-backend.png" alt="Admin Backend"></p>
+<h2>View Backup Tasks</h2>
+<p>To view tasks for a single data system, access the <em>timeline view</em> for that
+system by clicking on its card on the <em>Systems</em> page.</p>
+<p><img src="images/shield/timeline.png" alt="System Timeline View"></p>
+<p>The timeline lists each task, in reverse chronological order, so the most
+recently executed tasks float to the top.  Clicking on the task will expand
+its task log:</p>
+<p><img src="images/shield/task-log.png" alt="System Task Log"></p>
+<p>This contains all of the relevant details about this task; when it was
+scheduled, when it started, when it stopped, whether it succeeded or not,
+etc.  It also contains a full log of what was done.</p>
+<h2>Annotate a Backup Task</h2>
+<p>Sometimes, backups fail for reasons outside of your control.  Sometimes you
+figure out why a string of failures occurred, and want to make notes.
+SHIELD lets you do that via <em>task annotations</em>.</p>
+<p>You can annotate a task for any reason.  Start by accessing the timeline
+view for the system, and expand the task you want to annotate.  Then, click
+the <em>Annotate</em> button in the top right-hand corner:</p>
+<p><img src="images/shield/annotate-button.png" alt="System Task Annotation Button"></p>
+<p>This brings up the annotation form:</p>
+<p><img src="images/shield/annotate-form.png" alt="System Task Annotation Form"></p>
+<p>Fill in your notes, and then click <em>Save</em>.  Your new annotation will feature
+prominently in the task header, without requiring anyone to expand the full
+task log:</p>
+<p><img src="images/shield/annotated-task.png" alt="Annotated Task in System Timeline"></p>
+<h2>What Agent Should I Use?</h2>
+<p>In general, if you co-locate an agent on the target data system that you
+want to back up, that’s the agent you should use.  These will often be named
+after the BOSH deployment / instance_group that they are deployed to, to
+make things easier.</p>
+<p>If you are unable to co-locate an agent, you can use <em>remote agents</em>, or
+<em>external agents</em>, which run elsewhere, and use the network to perform
+target-specific backup and recovery operations.  The data system has to
+support this, as does the configuration of the data system.  For example,
+PostgreSQL can handle a <code>pgdump</code> backup across the network, if you configure
+the user permissions properly.  Redis, on the other hand, cannot do
+network-based backup or restore.</p>
+<h2>My SHIELD Agent Is Missing!</h2>
+<p>If you expect to see an agent in a dropdown in the web interface, but do
+not, there’s a few things you should check:</p>
+<ol>
+<li>Does the agent show up in the admin backend?</li>
+<li>Is the agent software running?</li>
+<li>Can SHIELD and the agent see each other on the network?</li>
+</ol>
+<p>The <em>SHIELD Admin Backend</em> provides a view into the list of registered
+agents and their health:</p>
+<p><img src="images/shield/agents-list.png" alt="Agents of SHIELD Admin View"></p>
+<p>If your agent is listed here, that means it is registering itself with the
+SHIELD core properly.  If it is marked as unhealthy, investigate and resolve
+that problem before returning to diagnostics with the SHIELD core.</p>
+<p>If the agent is <em>not</em> listed, double-check that:</p>
+<ol>
+<li>the <code>shield-agent</code> process on the remote host is running</li>
+<li>the agent is configured to talk to the right SHIELD core</li>
+<li>the agent whitelists the SHIELD core’s public key</li>
+</ol>
+<p>Finally, check your network topology.  SHIELD currently requires that it
+have direct, mutual visibility with its agents.  The registration protocol
+currently involves an HTTPS call into the core from the SHIELD agent.  The
+core then uses the remote address that made said HTTPS call to <em>connect
+back</em> to the SHIELD agent to finish registration and interrogation.</p>
+<p>This means that things like HTTPS proxies and NAT gateways can cause havoc
+with SHIELD agent registration.</p>
+
+  </div>
+
+  <footer>
+    Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a>
+  </footer>
+
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript" src="runbook.js"></script>
+</body>
+</html>

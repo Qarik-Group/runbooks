@@ -1,0 +1,8 @@
+---
+applications:
+  - name:  runbooks
+    instances: 2
+    memory: 32M
+    path: web
+    routes:
+      - route: runbooks.starkandwayne.com

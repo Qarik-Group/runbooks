@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Runbooks @Stark &amp; Wayne</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,intial-scale=1">
+</head>
+<body>
+  <nav class="desktop">
+    <span>Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All Runbooks</a></span>
+  </nav>
+  <nav class="mobile">
+    <span>&copy; <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All</a></span>
+  </nav>
+
+  <header>
+    <h1>Cloud Foundry</h1>
+    <h2></h2>
+  </header>
+
+  <div id="m">
+    <p>Cloud Foundry needs no introduction.  It’s the star of the show!</p>
+<p>This runbook deals solely with the <code>cf</code> CLI.  While there are some
+great offerings out there for UI-based management of Cloud
+Foundry, this runbook will not be dealing with non-terminal
+methods.</p>
+<h2>Install the <code>cf</code> CLI</h2>
+<p>If you are running on a Genesis-deployed jumpbox, you already have
+the <code>cf</code> CLI.</p>
+<p>If you want to manage Cloud Foundry from elsewhere, you have the
+following options:</p>
+<ol>
+<li>Homebrew (Mac OSX only)</li>
+<li>Download a binary from <a href="https://github.com/cloudfoundry/cli/releases">Github</a></li>
+</ol>
+<p>For those of you using Homebrew:</p>
+<pre><code>$ brew tap cloudfoundry/tap
+$ brew install cf
+</code></pre>
+<h2>Log into Cloud Foundry</h2>
+<p>Before you can interact with Cloud Foundry from the command-line,
+you need to set your CF API endpoint, and then authenticate:</p>
+<pre><code>$ cf api https://api.system.cf.example.com
+OK
+
+api endpoint:   https://api.system.cf.example.com
+api version:    2.105.0
+
+$ cf login
+API endpoint: https://api.system.cf.example.com
+
+Email&gt; admin
+Password&gt;
+Authenticating...
+OK
+
+API endpoint:   https://api.system.cf.example.com (API version: 2.106.0)
+User:           admin
+Org:            system
+Space:          system
+</code></pre>
+<p>If you ever need to re-authenticate, you can skip the <code>cf api</code>
+step and go straight to <code>cf login</code>.</p>
+<p>You can also use <code>cf auth</code>, which is non-interactive:</p>
+<pre><code>$ cf auth admin $(safe read secret/path/to/cf/admin_user:password)
+</code></pre>
+<p>Which leverages <code>safe</code> to pull the admin credentials for you.</p>
+<h2>Manage Multiple Cloud Foundries with One CLI</h2>
+<p>By itself, the <code>cf</code> command-line interface can only handle one
+targeted Cloud Foundry API endpoint at a time.  If you need to
+bounce between two or more CF instances, you will find yourself
+regularly overwriting your API configuration, and needing to log
+in every time you switch.</p>
+<p>You can set your <code>CF_HOME</code> environment variable to isolate these
+separate authentication contexts, but there’s a better way!</p>
+<p>The <em>Targets</em> plugin adds a new <code>cf set-target</code> command that
+manages this complexity for you.  To install:</p>
+<pre><code>$ cf add-plugin-repo CF-Community https://plugins.cloudfoundry.org/
+$ cf install-plugin Targets -r CF-Community
+</code></pre>
+<p>(You will have to do this on every jumpbox you use)</p>
+<p>Then, when you want to target a new Cloud Foundry instance:</p>
+<pre><code>$ cf api ...
+$ cf login
+$ cf save-target dev
+</code></pre>
+<p>Later, if you need to access production (for the first time):</p>
+<pre><code>$ cf api ...
+$ cf login
+$ cf save-target prod
+</code></pre>
+<p>Then, if you want to go back to the development CF, all you need
+is:</p>
+<pre><code>$ cf set-target dev
+</code></pre>
+<p>And <code>cf</code> will magically remember your authentication context
+(OAuth2 / UAA tokens) for the <em>dev</em> CF.</p>
+<h2>Increase the <code>cf</code> CLI Timeout</h2>
+<p>By default, <code>cf</code> imposes a five (5) second timeout on all HTTP
+calls to the Cloud Foundry API.  In some network environments,
+this can be unbearably low, but there is no flag to change this
+behavior.</p>
+<p>There is, however, an environment variable, called
+<code>CF_DIAL_TIMEOUT</code>:</p>
+<pre><code>$ export CF_DIAL_TIMEOUT=30
+$ cf apps
+</code></pre>
+<h2>Trace <code>cf</code> Commands The Right Way</h2>
+<p>The <code>cf</code> utility has the ability to dump out the HTTP headers and
+request / response bodies as it interacts with the remote API.
+This behavior is controlled by the <code>CF_TRACE</code> environment
+variable, but the variable is a bit tricky.</p>
+<p>If you set it to the value <code>1</code> (the numeral “one”). <code>cf</code> will emit
+the debugging information to standard output, so you can view it
+on your screen, interspersed with regular command output.
+Usually, this is what you want.</p>
+<p><em>Any other value</em> will cause <code>cf</code> to open a file with that name
+and write just the HTTP transport debugging output to it.  This
+can be quite confusing if you try setting <code>CF_TRACE</code> to something
+like “yes”.  You’ll end up with a file named <code>yes</code>.</p>
+<p>If you don’t want HTTP trace-level debugging on every <code>cf</code>
+command you are going to run, you can set it on a per-command
+basis like this:</p>
+<pre><code>$ CF_TRACE=1 cf services
+$ cf apps
+</code></pre>
+<p>The <code>cf services</code> call will get debugging; the <code>cf apps</code> call will
+not.</p>
+<h2>What Features Are Enabled on my Cloud Foundry?</h2>
+<p>Cloud Foundry has a lot of optional features that can be turned on
+or off by the operators (you).  To view what’s been enabled, run:</p>
+<pre><code>$ cf feature-flags
+Retrieving status of all flagged features as admin...
+OK
+
+Features                               State
+user_org_creation                      disabled
+private_domain_creation                enabled
+app_bits_upload                        enabled
+app_scaling                            enabled
+route_creation                         enabled
+service_instance_creation              enabled
+diego_docker                           disabled
+set_roles_by_username                  enabled
+unset_roles_by_username                enabled
+task_creation                          enabled
+env_var_visibility                     enabled
+space_scoped_private_broker_creation   enabled
+space_developer_env_var_visibility     enabled
+service_instance_sharing               enabled
+</code></pre>
+<p>To enable a feature, use <code>cf enable-feature-flag &lt;NAME&gt;</code>.</p>
+<p>To disable a feature, <code>cf disable-feature-flag &lt;NAME&gt;</code>.</p>
+<p>For more details on what each feature does, refer to the <a href="https://docs.cloudfoundry.org/adminguide/listing-feature-flags.html#flags">Official
+Cloud Foundry documentation</a>.</p>
+<h2>Install <code>cloudfoundry-utils</code></h2>
+<p>Stark &amp; Wayne has written (and continues to maintain) a collection
+of Open Source tools called <code>cloudfoundry-utils</code> that come in
+quite handy.  They are <a href="https://github.com/cloudfoundry-community/cloudfoundry-utils">available on Github</a>.</p>
+<p>If you are running on a Genesis-deployed jumpbox, these are
+already installed.</p>
+<h2>Create a New Cloud Foundry Organization</h2>
+<p>Colloquially referred to as just “orgs”, organizations provide a
+level of access control for multi-tenancy inside of Cloud Foundry.
+Each org has one or more <em>spaces</em>, into which services can be
+created and applications can be deployed.</p>
+<p>To see what orgs exist (as an administrative user):</p>
+<pre><code>$ cf orgs
+Getting orgs as admin...
+
+name
+system
+app-team1
+other-app-team
+</code></pre>
+<p>To create a new org, all you need is a name:</p>
+<pre><code>$ cf create-org my-org
+$ cf orgs
+Getting orgs as admin...
+
+name
+system
+app-team1
+other-app-team
+my-org
+</code></pre>
+<p>You will be granted full rights to the newly-created org.</p>
+<h2>Create a New Cloud Foundry Space</h2>
+<p>Inside of an org, Cloud Foundry uses <em>spaces</em> to separate
+applications from one another.  How you decide to use spaces is
+entirely up to you.  One space per org works.  One space per
+application (multiple per org) is also fine.</p>
+<p>To create a new space, you can either target the owning org:</p>
+<pre><code>$ cf target -o my-org
+$ cf create-space my-space
+</code></pre>
+<p>or, you can specify the org in the options to <code>create-space</code>:</p>
+<pre><code>$ cf create-space -o my-org my-space
+</code></pre>
+<p>You will be granted full rights to the newly-created space.</p>
+<h2>The <code>system</code> Org and Space</h2>
+<p>By default, we create a <code>system</code> org and a <code>system</code> space inside
+of it.  This is a great place to deploy global, system-wide
+applications and services.</p>
+<p>For example, if you have documentation you want to make available
+to all users, <code>system/system</code> is a good place to put it.</p>
+<p>Similarly, if you are using the Tinsmith model of Blacksmith
+shared services, you can deploy your Tinsmith CF apps to the
+system space, and also provision your backing Blacksmith service
+there.</p>
+<h2>Assign Rights on Orgs and Spaces</h2>
+<p>In order for your users to be able to push applications, create
+services, etc., you’re going to need to assign them roles on the
+orgs and spaces you have created.</p>
+<p>The commands for setting org-level roles are:</p>
+<pre><code>$ cf   set-org-role user org-name role
+$ cf unset-org-role user org-name role
+</code></pre>
+<p>The valid values for <code>role</code> are:</p>
+<ol>
+<li><strong>OrgManager</strong> - can invite and manage users, select and
+change plans, and set spending limits</li>
+<li><strong>BillingManager</strong> - can create and manage the billing
+account and payment information</li>
+<li><strong>OrgAuditor</strong> - read-only access to org info and reports</li>
+</ol>
+<p>The commands for setting space-level roles are:</p>
+<pre><code>$ cf   set-space-role user org-name space-name role
+$ cf unset-space-role user org-name space-name role
+</code></pre>
+<p>The valid values for <code>role</code> are:</p>
+<ol>
+<li><strong>SpaceManager</strong> - can invite and manage users, and enable
+features for this space</li>
+<li><strong>SpaceDeveloper</strong> - can create and manage apps and services,
+and see logs and reports</li>
+<li><strong>SpaceAuditor</strong> - can view logs, reports, and settings on
+this space</li>
+</ol>
+<h2>Manage Disk and Memory Quotas</h2>
+<p>Cloud Foundry has org- and space-level quotas for things like
+total amount of memory across all application instances,
+per-instance memory limits, number of routes, etc.  These are all
+enforced via <em>quotas</em>.</p>
+<p>To show your active quotas:</p>
+<pre><code>$ cf quotas
+name     total memory   instance memory   routes   service instances   paid plans   app instances   route ports
+free     0              10G               1000     0                   disallowed   unlimited       0
+paid     25G            10G               1000     unlimited           allowed      unlimited       0
+runaway  500G           10G               1000     unlimited           allowed      unlimited       0
+trial    2G             10G               1000     10                  disallowed   32              0
+</code></pre>
+<p>You can see what quota is in force for a given org or space by running:</p>
+<pre><code>$ cf org org-name
+$ cf space space-name
+</code></pre>
+<p>(You have to be targeting the owning org for the second command to work)</p>
+<p>Each org and space can only be under the influence of a single quota at any
+given time.  You can change this assignment via the <code>set-quota</code> and
+<code>set-space-quota</code> commands:</p>
+<pre><code>$ cf set-quota org-name quota-name
+$ cf set-space-quota space-name quota-name
+</code></pre>
+<p>(Again, you have to be targeting the owning org for the second command to
+work)</p>
+<p>If you want to emulate <em>unlimited</em> quotas, make a quota with arbitrarily
+high limits.</p>
+<p>For more information on quotas in Cloud Foundry, check out the <a href="https://docs.cloudfoundry.org/adminguide/quota-plans.html">Official
+Cloud Foundry documentation</a>.</p>
+<h2>Manage Cloud Foundry Buildpacks</h2>
+<p>Cloud Foundry uses <em>buildpacks</em> to figure out how to deploy code that your
+users push into it via <code>cf push</code>.  It uses heuristics and identifies what
+stack a given application needs based on the presence of packaging files and
+their contents.</p>
+<p>To get a list of your available buildpacks, use the <code>cf buildpacks</code> command:</p>
+<pre><code>$ cf buildpacks
+Getting buildpacks...
+
+buildpack                    position   enabled   locked   filename
+staticfile_buildpack         1          true      false    staticfile_buildpack-cached-v1.4.24.zip
+java_buildpack               2          true      false    java-buildpack-offline-v4.9.zip
+ruby_buildpack               3          true      false    ruby_buildpack-cached-v1.7.15.zip
+nodejs_buildpack             4          true      false    nodejs_buildpack-cached-v1.6.20.zip
+go_buildpack                 5          true      false    go_buildpack-cached-v1.8.20.zip
+python_buildpack             6          true      false    python_buildpack-cached-v1.6.11.zip
+php_buildpack                7          true      false    php_buildpack-cached-v4.3.51.zip
+dotnet_core_buildpack        8          true      false    dotnet-core_buildpack-cached-v2.0.5.zip
+dotnet_core_buildpack_beta   9          true      false    dotnet-core_buildpack-cached-v1.0.0.zip
+hwc_buildpack                10         true      false    hwc_buildpack-cached-v2.3.14.zip
+binary_buildpack             11         true      false    binary_buildpack-cached-v1.0.18.zip
+</code></pre>
+<p>Over time, you will need to upgrade or downgrade these buildpack archives,
+as patches are applied upstream, and/or your users require newer (or older)
+versions.</p>
+<p>To upload a new version of a buildpack:</p>
+<pre><code>$ cf update-buildpack go_buildpack \
+       ./download/go_buildpack-cached-v1.8.21.zip
+</code></pre>
+<p>You can also use the <code>update-buildpack</code> command to enable / disable
+buildpacks, change their relative ordering, etc.</p>
+<h2>Push an Application Using a Specific Buildpack</h2>
+<p>Most of the time, Cloud Foundry does the right thing when it comes to
+buildpack detection during a <code>cf push</code>.  However, there are times when you
+want to use a specific buildpack.  For example, some applications are
+composed of multiple sub-components that may confuse the buildpack detection
+logic.  You may also want to test a buildpack before doing a full upgrade.</p>
+<p>In these cases, you can use the <code>-b</code> option to <code>cf push</code>, and specify the
+buildpack (by name) explicitly:</p>
+<pre><code>$ cd ~/code/my-app
+$ cf push -b go_buildpack
+</code></pre>
+<p>For doing updates, you can upload the buildpack to a nonstandard name, like
+<code>ruby_buildpack-rc</code>, test a known-good Ruby application, and if successful,
+update the actual Ruby buildpack.</p>
+<h2>What is a Route vs. a Domain?</h2>
+<p>Often, people will talk about routes and domains as if they are
+interchangeable.  They are not, but they are related.</p>
+<p>A <em>domain</em> is an artifact of DNS that identifies all or part of a hostname.
+For example, <code>starkandwayne.com</code> is a domain on the Cloud Foundry that hosts
+<a href="http://www.starkandwayne.com">www.starkandwayne.com</a> and <a href="http://blog.starkandwayne.com">blog.starkandwayne.com</a>.</p>
+<p>A <em>route</em> is a specific mapping of hostname, domain, and (optional) request
+path to a specific set of application instances.  Using the example above,
+there are two applications that use the <code>starkandwayne.com</code> domain: <code>www</code>
+(with a route for <a href="http://www.starkandwayne.com">www.starkandwayne.com</a>) and <code>blog</code>.</p>
+<p>Routes are much more specific than domains.</p>
+<p>A route will always send traffic, in round-robin fashion, to <em>all</em> of the
+application instances associated with it.  If you bind two different
+apps (with different codebases) to a single route, weird stuff happens.</p>
+<p>A domain can be shared by all orgs / spaces, or restricted to use by a
+single org and/or space (private).</p>
+<h2>How does Cloud Foundry Route Requests?</h2>
+<p>First, a client makes a request to the URL of the application.  Usually,
+this causes the client to make a TCP connection to a load balancer which
+will present the wildcard certificates for the Cloud Foundry instance.  This
+is called “terminating TLS”.</p>
+<p>This load balancer will then make a second connection to one of its
+backends, the <em>gorouters</em>.  These boxes contain all of the logic necessary
+to dispatch routes to the application instances running inside of CF.</p>
+<p>The gorouter examines the request to determine where it should go.  It looks
+at two things: the HTTP <code>Host:</code> header, and the <em>request URI</em>.  Some
+applications are routed strictly by the <code>Host:</code> header alone.  This is what
+we typically think of when we talk about routing.  An application that has
+bound the route for <code>www.example.com</code> will receive all requests with that
+host header.</p>
+<p>Cloud Foundry can also route traffic based on <em>request URI prefixing</em>.  For
+example, if you have two applications, one for a web front-end, and another
+for the web backend, you can bind them both to the same routed host, but
+bind the API to the <code>/v1</code> path.  Any request to any path at or underneath
+<code>/v1</code> will go to the backend app, instead of the front-end app.</p>
+<h2>Register a Service Broker</h2>
+<p>Service Brokers allows CF users to provision services for use with their
+applications.  Before a user can take advantage of this, however, an
+operator (with admin privileges) must first register the service broker with
+the cloud controller.</p>
+<p>First, get a list of already-registered brokers:</p>
+<pre><code>$ cf service-brokers
+Getting service brokers as jhunt@starkandwayne.com...
+
+name           url
+redis          https://10.200.144.5:3000
+other-broker   https://10.200.218.218/broker
+</code></pre>
+<p>(This helps to ensure you haven’t already registered the broker, and to
+verify that the broker name you are about to use isn’t already taken)</p>
+<p>Next, register the broker:</p>
+<pre><code>$ cf create-service-broker broker-name username password https://...
+</code></pre>
+<p>Verify with another <code>cf service-brokers</code>.</p>
+<p>Before you will see this broker’s services in the CF Marketplace, you need to
+enable access to each via <code>cf enable-service-access</code>.</p>
+<h2>De-register a Service Broker</h2>
+<p>Before you decommission a service broker, it has to be de-registered from
+the cloud controller.</p>
+<p>First, get a list of the registered brokers:</p>
+<pre><code>$ cf service-brokers
+Getting service brokers as jhunt@starkandwayne.com...
+
+name           url
+redis          https://10.200.144.5:3000
+other-broker   https://10.200.218.218/broker
+</code></pre>
+<p>(This helps to ensure you haven’t already de-registered the broker, and to
+get the name of the broker to de-register it)</p>
+<p>Then, de-register the broker from the cloud controller:</p>
+<pre><code>$ cf delete-service-broker other-broker
+</code></pre>
+<p>Cloud Foundry will not let you delete a service broker that still has active
+provisioned services.  Those will first need to be unbound and deleted.  To
+make finding those services easier, <code>cloudfoundry-utils</code> has a script called
+<code>cf-services-for-broker</code>.  Give it the name of your service broker, and it
+will query cloud controller all the orgs and spaces:</p>
+<pre><code>$ cf-services-for-broker other-broker
+</code></pre>
+<p>(Note the hyphen between <code>cf</code> and <code>services</code> – this is not a <code>cf</code>
+sub-command, just a standalone script with a semi-clever name)</p>
+<h2>The <code>cf-env</code> Testing Application</h2>
+<p>It can be useful to have test applications at your disposal to verify that
+your Cloud Foundry is functioning properly.  <code>cf-env</code> is the simplest such
+test application.  When queried, it parrots back the request headers, and
+all environment variables assigned to the app.</p>
+<p>It lives on Github, at <a href="https://github.com/cloudfoundry-community/cf-env">https://github.com/cloudfoundry-community/cf-env</a></p>
+<p>To deploy it:</p>
+<pre><code>$ cd ~/apps
+$ git clone https://github.com/cloudfoundry-community/cf-env
+$ cd cf-env
+$ cf push
+</code></pre>
+<h2>The <code>cf-egress-tester</code> Testing Application</h2>
+<p>Another useful test application is <code>cf-egress-tester</code>.  It provides a web
+interface that allows you to initiate a TCP or UDP conversation to an
+arbitrary host on the network (public Internet, or on-premise private
+network).  We use this all the time to validate things like user-provided
+services (can you get to that Oracle database from this CF?), container
+networking, firewalls, and application security groups.</p>
+<p>It lives on Github, at <a href="https://github.com/pivotalservices/cf-egress-tester">https://github.com/pivotalservices/cf-egress-tester</a></p>
+<p>To deploy it:</p>
+<pre><code>$ cd ~/apps
+$ git clone https://github.com/pivotalservices/cf-egress-tester
+$ cd cf-egress-tester
+$ cf push -n net
+</code></pre>
+<p>(I usually call it <code>net</code> because that’s easier to type than
+<code>cf-egress-tester</code>.  YMMV)</p>
+<p>To use it, visit it in your browser and fill out the form.</p>
+<p>From the command-line, you can use <code>curl</code>:</p>
+<pre><code>$ curl net.system.cf.example.com/egress-status/tcp/8.8.8.8/53
+</code></pre>
+<p>or, for UDP:</p>
+<pre><code>$ curl net.system.cf.example.com/egress-status/udp/8.8.8.8/53
+</code></pre>
+<h2>Provision a Service and Bind it to an Application</h2>
+<p>To provision a service, take a look at the marketplace to find the service
+and plan you want to provision.  With the service and plan names in hand,
+create the service:</p>
+<pre><code>$ cf create-service service-name plan-name my-service-instance
+</code></pre>
+<p>You can view the details of the service with a <code>cf service</code> command:</p>
+<pre><code>$ cf service my-service-instance
+</code></pre>
+<p>For asynchronous services (like all of the Blacksmith services), you will
+need to wait until the status of the service changes from <code>creating</code> or <code>in progress</code> to <code>created</code>.</p>
+<p>Next, bind the service to your application:</p>
+<pre><code>$ cf bind-service my-service-instance my-app
+</code></pre>
+<p>To verify, check the applications environment:</p>
+<pre><code>$ cf env my-app
+</code></pre>
+<p>You should see new entries in the <code>VCAP_SERVICES</code> environment variable,
+which correspond to the credentials of the newly-bound service.</p>
+<h2>Determine What’s Using a Service Broker</h2>
+<p>Cloud Foundry does not make it easy to figure out where the services
+provisioned by a given broker exist.  To make finding those services easier,
+<code>cloudfoundry-utils</code> has a script called <code>cf-services-for-broker</code>.  Give it
+the name of your service broker, and it will query cloud controller all the
+orgs and spaces:</p>
+<pre><code>$ cf-services-for-broker other-broker
+</code></pre>
+<p>(Note the hyphen between <code>cf</code> and <code>services</code> – this is not a <code>cf</code>
+sub-command, just a standalone script with a semi-clever name)</p>
+<h2>Add a New Domain to Cloud Foundry</h2>
+<p>Before your users can use a new shared domain, an operator has to add it to
+the system.</p>
+<p>First, see what domains exist:</p>
+<pre><code>$ cf domains
+Getting domains in org system as admin...
+
+name                    status   type
+apps.cf.example.com     shared
+run.cf.example.com      shared
+system.cf.example.com   owned
+</code></pre>
+<p>To add the new domain:</p>
+<pre><code>$ cf create-shared-domain stuff.cf.example.com
+</code></pre>
+<p>Note: you <em>must</em> ensure that whatever is terminating TLS for your Cloud
+Foundry instance, whether that is a load balancer or the gorouters
+themselves, has the correct certificates, which cover the new domain in its
+subject alternate names section.</p>
+<p>The new shared domain will show up, and be bound, by all orgs and spaces,
+immediately.</p>
+<p>If you want to create an org-level domain, use the <code>cf create-domain</code>
+command instead (note the lack of the <code>shared</code> keyword in the middle):</p>
+<pre><code>$ cf create-domain org-name org-specific.com
+</code></pre>
+<p>The same caveat applies here too: you must ensure that TLS is properly
+configured for the new domain.</p>
+<h2>Set System-wide Environment Variables</h2>
+<p>Cloud Foundry allows application owners to set environment variables on
+their applications, via the <code>cf set-env</code> command.  Often, however, operators
+need to be able to supply environment-wide configuration via environment
+variables.  The most prominent example of this is when you run CF behind an
+Internet HTTP proxy, and need the <code>http_proxy</code>, <code>https_proxy</code>, and
+<code>no_proxy</code> environment variables.</p>
+<p>Cloud Foundry allows this, by way of <em>environment variable groups</em>.  It
+maintains two sets, the <em>running environment variable group</em> and the
+<em>staging environment variable group</em>.  These perform the same function, but
+for different parts of the application lifecycle.  The former is used while
+an application is executing, while the latter is only used while the
+application is being staged (compiled) by the buildpack.</p>
+<p>In practice, you usually want to set both of the, and make them identical.
+Here’s how we set <code>http_proxy</code> globally:</p>
+<pre><code>$ cf set-staging-environment-variable-group \
+     '{&quot;http_proxy&quot;:&quot;http://proxy1.int:3128&quot;}'
+
+$ cf set-running-environment-variable-group \
+     '{&quot;http_proxy&quot;:&quot;http://proxy1.int:3128&quot;}'
+</code></pre>
+<p>To verify:</p>
+<pre><code>$ cf staging-environment-variable-group
+Retrieving the contents of the staging environment variable group as admin...
+OK
+
+Variable Name   Assigned Value
+http_proxy      http://proxy1.int:3128
+
+$ cf running-environment-variable-group
+Retrieving the contents of the running environment variable group as admin...
+OK
+
+Variable Name   Assigned Value
+http_proxy      http://proxy1.int:3128
+</code></pre>
+<h2>Create / Modify an Application Security Group</h2>
+<p>Outbound network traffic from a Cloud Foundry application instance group is
+governed by a set of <em>application security groups</em>.  By default, Genesis
+deploys Cloud Foundry with a few default groups:</p>
+<pre><code>$ cf security-groups
+Getting security groups as admin...
+OK
+
+     name              organization   space   lifecycle
+#0   dns               &lt;all&gt;          &lt;all&gt;   running
+     dns               &lt;all&gt;          &lt;all&gt;   staging
+#1   load_balancer     &lt;all&gt;          &lt;all&gt;   running
+     load_balancer     &lt;all&gt;          &lt;all&gt;   staging
+#2   public_networks   &lt;all&gt;          &lt;all&gt;   running
+     public_networks   &lt;all&gt;          &lt;all&gt;   staging
+#3   services          &lt;all&gt;          &lt;all&gt;   running
+     services          &lt;all&gt;          &lt;all&gt;   staging
+</code></pre>
+<p>You can view each of these by running the <code>cf security-group</code> command:</p>
+<pre><code>$ cf security-group dns
+Getting info for security group dns as admin
+OK
+
+Name    dns
+Rules
+    [
+        {
+            &quot;destination&quot;: &quot;0.0.0.0/0&quot;,
+            &quot;ports&quot;: &quot;53&quot;,
+            &quot;protocol&quot;: &quot;tcp&quot;
+        },
+        {
+            &quot;destination&quot;: &quot;0.0.0.0/0&quot;,
+            &quot;ports&quot;: &quot;53&quot;,
+            &quot;protocol&quot;: &quot;udp&quot;
+        }
+    ]
+
+No spaces assigned
+</code></pre>
+<p>To create a new security group, create a JSON file that contains all of the
+rules for the new group, and then run the <code>create-security-group</code> command:</p>
+<pre><code>$ cf create-security-group group-name path/to/rules.json
+</code></pre>
+<p>If you want to update a group, modify its JSON rules definition, and call
+<code>update-security-group</code> instead of <code>create-security-group</code>.</p>
+<p>If you create a new security group, keep in mind that it will not be active
+until you bind it with <code>bind-security-group</code>.</p>
+<p>The <code>cf-egress-tester</code> test application can be quiet helpful in crafting and
+validating security groups.</p>
+<h2>Back up Cloud Foundry</h2>
+<p>Cloud Foundry has some pretty critical data in it, and you’ll want to back
+that data up using something like SHIELD.  There are three main components
+that need to be preserved:</p>
+<ol>
+<li>The Cloud Controller Database</li>
+<li>The UAA Database</li>
+<li>The Blobstore</li>
+</ol>
+<p>The first two are required.  The third is highly recommended, but can be
+omitted from a backup strategy if space is at a premium.  If you do skip
+the blobstore, your users will have to re-push all of their applications in
+the event of data-loss.</p>
+<h2>Scale Components of Cloud Foundry</h2>
+<p>As Cloud Foundry proves itself to be indispensable to your
+user base, its popularity will grow.  This will lead you to scale
+various components of CF to cope.</p>
+<p>The following components can be scaled horizontally, by adding
+more nodes of the same size:</p>
+<p><code>router</code> - More gorouters, behind a load balancer, can help spread
+the ingress routing traffic across more cores.</p>
+<p><code>diego-cell</code> - More cells means more application instances.</p>
+<p><code>doppler</code> / <code>log-api</code> - More application instances means more log
+traffic, so you may need more doppler / loggregator nodes.</p>
+<p><code>cc-worker</code> - If the API is unable to keep up with user demand,
+you can create more worker nodes to perform tasks.</p>
+<h2>View the Log Stream for an Application</h2>
+<p>To hook up to the live log stream for all instances of an
+application, use the <code>cf logs</code> command:</p>
+<pre><code>$ cf logs app-name
+</code></pre>
+<p>This will contact the loggregator via the gorouters, upgrade to a
+(Secure) WebSockets connection, and then stream log entries in
+real time to your terminal.</p>
+<p>If you want the recent logs, from the immediate past, pass the
+<code>--recent</code> flag to <code>cf logs</code>:</p>
+<pre><code>$ cf logs --recent app-name
+</code></pre>
+<h2>SSH Into Application Instance Containers</h2>
+<p>If you’ve enabled the ability for Cloud Foundry users to SSH into
+their application instances, <code>cf ssh</code> can be a wonderful tool for
+diagnostic and troubleshooting activities.</p>
+<p>To check:</p>
+<pre><code>$ cf ssh-enabled my-app
+ssh support is enabled for 'my-app'
+</code></pre>
+<p>If not, you can enable it:</p>
+<pre><code>$ cf enable-ssh my-app
+</code></pre>
+<p>Then, you can SSH in and get a remote shell, inside one of the
+application instances:</p>
+<pre><code>$ cf ssh my-app
+</code></pre>
+<p>Or, if you want a specific instance:</p>
+<pre><code>$ cf ssh my-app -i 3
+</code></pre>
+<h2>Why Do Busy Cloud Foundries Take So Long to Deploy?</h2>
+<p>Because of a thing called <code>drain</code>.</p>
+<p>When BOSH attempts to update a Diego cell, it runs a thing called
+a <em>drain script</em> that attempts to evacuate the running application
+instances off of the cell and onto another cell.  This has to
+happen before BOSH can rebuild the cell VM, update software, etc.</p>
+<p>On busy Cloud Foundries, the Diego cluster may be operating at or
+near capacity, making it difficult for the drain script to find a
+suitable place to relocate the instance containers to.
+Eventually, the drain script will give up and just terminate the
+application instances, but this takes time.</p>
+<h2>Restage vs. Restart: How, When, and Why</h2>
+<p>Cloud Foundry has two commands for re-initializing the execution
+of an application: <code>cf restage</code> and <code>cf restart</code>.</p>
+<p><em>Restarting</em> an application terminates its application instances and
+then re-creates them.  This tends to clear out runtime errors like
+out-of-memory conditions, or infinite loops.</p>
+<p><em>Restaging</em> an application pulls the original code droplet that was
+uploaded via <code>cf push</code>, re-compiles it against the current set of
+buildpacks, and <em>then</em> restarts the application instances.  This
+is a much more involved operation, but it is required in a handful
+of cases.</p>
+<p>If you change the staging environment variable groups, you really
+ought to restage the application, since the compilation may behave
+differently given the new environmental configuration.</p>
+<p>Likewise, if you modify the staging security groups in force for
+an application, you should restage it so that the compilation
+operates in the same networking conditions as a future <code>cf push</code>.</p>
+<h2>Integrate UAA With Your LDAP Backend</h2>
+<p>UAA, which handles authentication and authorization in Cloud
+Foundry, supports authentication integration with external LDAP
+identity providers.  This support currently comes in three
+different modes of operation:</p>
+<ul>
+<li>Search and Bind</li>
+<li>Simple Bind</li>
+<li>Search and Compare</li>
+</ul>
+<p>In <em>Search and Bind</em> mode, the UAA connects to LDAP anonymously,
+searches the tree for the authenticating user, and then attempts
+to bind as that distinguished name (DN) with the given
+credentials.</p>
+<p>In <em>Simple Bind</em> mode, the UAA binds to the LDAP store by
+programatically constructing a distringuished name and binding as
+that with the given credentials.</p>
+<p>In <em>Search and Compare</em> mode, the UAA finds the user in the
+directory, retrieves their encoded (and encrypted) password, and
+compares it offline against the given credentials.</p>
+<p>Which mode you want to operate in depends entirely on your LDAP
+directory server configuration.</p>
+<p>For more details, refer to the <a href="https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-LDAP.md">UAA LDAP Integration
+guide</a>.</p>
+<p>Note: the scheme of LDAP configuration in UAA may differ from
+release to release.  Always refer to the latest <a href="https://github.com/cloudfoundry/uaa-release/blob/develop/jobs/uaa/spec">uaa job
+spec</a> for details.</p>
+<p>If you are using Genesis to deploy Cloud Foundry, you will have to
+manually override these configuration properties.  Here are some
+examples to start from.</p>
+<p>For <em>Simple Bind</em>:</p>
+<pre><code>instance_groups:
+- name: uaa
+  jobs:
+  - name: uaa
+  properties:
+    uaa:
+      ldap:
+        enabled:      true
+        profile_type: simple-bind
+        url:          your_ldap_url
+
+        userDNPattern:          # DN patterns to construct a DN directly
+                                # from the user ID without a search
+        userDNPatternDelimiter: # What delimits the userDNPattern property
+        mailAttributeName:      mail
+        sslCertificate:         # You should put this in the Vault
+</code></pre>
+<p>For <em>Search and Bind</em>:</p>
+<pre><code>instance_groups:
+- name: uaa
+  jobs:
+  - name: uaa
+  properties:
+    uaa:
+      ldap:
+        enabled:      true
+        profile_type: search-and-bind
+        url:           your_ldap_url
+
+        mailAttributeName: mail
+        userDN:            # DN to bind for the &quot;search&quot; phase
+        userPassword:      # the password for the search user
+        searchBase:        dc=example,dc=com
+        searchFilter:      cn={0}
+        sslCertificate:    # You should put this in the Vault
+</code></pre>
+<p>For <em>Search and Compare</em>:</p>
+<pre><code>instance_groups:
+- name: uaa
+  jobs:
+  - name: uaa
+  properties:
+    uaa:
+      ldap:
+        enabled:      true
+        profile_type: search-and-compare
+        url:          your_ldap_url
+
+        mailAttributeName:    mail
+        userDN:               # can store it in vault and fecth from vault
+        userPassword:         # can store it in vault and fecth from vault
+        searchBase:           dc=example,dc=com
+        searchFilter:         cn={0}
+        localPasswordCompare: true
+        sslCertificate:       # You should put this in the Vault
+
+</code></pre>
+<h2>Integrate UAA With A SAML Identity Provider</h2>
+<p>UAA also supports integration via SAML, the <em>Security Access
+Markup Language</em>, both as an an SP (<em>Service Provider</em>), and as an
+IdP (<em>Identity Provider</em>).</p>
+<p>To configure UAA as an <em>SP</em>, integrated with a 3rd-party <em>IdP</em>,
+you first need to give your IdP team a copy of the SAML Service
+Provider Metadata, which can be found here:</p>
+<pre><code>https://login.YOUR-CF-SYSTEM-DOMAIN/saml/metadata
+</code></pre>
+<p>Configuration of your IdP systems is beyond the scope of this
+runbook, but your IdP team should give you back an IdP metadata
+file, which should contain a bunch of XML.</p>
+<p>Note: the scheme of SAML configuration in UAA may differ from
+release to release.  Always refer to the latest <a href="https://github.com/cloudfoundry/uaa-release/blob/develop/jobs/uaa/spec">uaa job
+spec</a> for details.</p>
+<p>If you are using Genesis to deploy Cloud Foundry, you will have to
+manually override these configuration properties.  Here is an
+example to start from:</p>
+<pre><code>instance_groups:
+- name: uaa
+  jobs:
+  - name: uaa
+    properties:
+      login:
+        saml:
+          # Provider Information Configs
+          providers:
+            # Example
+            myProvider:
+              nameID:             urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+              showSamlLoginLink:  true
+              linkText:           Log in with XX IDP
+              metadataTrustCheck: false
+              idpMetadata: |
+                ... your idp metadata XML contents ...
+
+          activeKeyId: key1
+          keys:
+            key1:
+              key:         (( vault secret/your-cf-env-vault-path/uaa/certs/server:key ))
+              certificate: (( vault secret/your-cf-env-vault-path/uaa/certs/server:certificate ))
+              passphrase: &quot;&quot;
+</code></pre>
+
+  </div>
+
+  <footer>
+    Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a>
+  </footer>
+
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript" src="runbook.js"></script>
+</body>
+</html>

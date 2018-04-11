@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Runbooks @Stark &amp; Wayne</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,intial-scale=1">
+</head>
+<body>
+  <nav class="desktop">
+    <span>Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All Runbooks</a></span>
+  </nav>
+  <nav class="mobile">
+    <span>&copy; <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All</a></span>
+  </nav>
+
+  <header>
+    <h1>BOSH</h1>
+    <h2></h2>
+  </header>
+
+  <div id="m">
+    <p>BOSH is an Open Source tool for orchestrating deployment, lifecycle
+management, and monitoring of distributed systems. To learn more about BOSH,
+visit <a href="https://ultimateguidetobosh.com">Ultimate Guide to BOSH</a>, or the <a href="https://bosh.io/docs">official BOSH
+documentation</a>.</p>
+<h2>Log Into Your Director</h2>
+<p>Before you can run any BOSH commands, you should set up an alias for it, in
+your local configuration, and authenticate.  This is done via the <code>bosh alias-env</code> command:</p>
+<pre><code>$ bosh alias-env your-env \
+    -e https://bosh-ip:25555 \
+    --ca-cert &lt;(safe get secret/your/env/bosh/ssl/ca:certificate)
+
+Using environment 'https://10.200.130.1' as anonymous user
+
+Name      your-env
+UUID      9d22659b-a582-411c-a6d4-2ccc24211d4c
+Version   263.2.0 (00000000)
+CPI       vsphere_cpi
+Features  compiled_package_cache: disabled
+          config_server: disabled
+          dns: disabled
+          snapshots: disabled
+User      (not logged in)
+
+Succeeded
+</code></pre>
+<p>Future BOSH commands will only need to specify <code>-e your-env</code> to target this
+BOSH director, instead of having to specify the full URL and certificate
+authority certificate.</p>
+<p>Since we are still <em>anonymous</em>, let’s go ahead and log in:</p>
+<pre><code>$ bosh -e your-env login
+Username (): admin
+Password ():
+
+Using environment 'https://10.200.130.1' as client 'admin'
+
+Logged in to 'https://10.200.130.1'
+
+Succeeded
+</code></pre>
+<p>You can use the <code>bosh env</code> command to verify that you are logged in:</p>
+<pre><code>$ bosh -e your-env env
+
+Using environment 'https://10.200.130.1' as client 'admin'
+
+Name      your-bosh
+UUID      9d22659b-a582-411c-a6d4-2ccc24211d4c
+Version   263.2.0 (00000000)
+CPI       vsphere_cpi
+Features  compiled_package_cache: disabled
+          config_server: disabled
+          dns: disabled
+          snapshots: disabled
+User      admin
+
+Succeeded
+</code></pre>
+<p>You only need to <code>bosh login</code> for interactive (i.e. jumpbox) use.  For
+automated scripts, you can set the <code>BOSH_CLIENT_ID</code> and <code>BOSH_CLIENT_SECRET</code>
+environment variables to <code>admin</code> and the password:</p>
+<pre><code>$ export BOSH_CLIENT_ID=admin
+$ export BOSH_CLIENT_SECRET=$(safe read secret/your/env/bosh/users/admin:password)
+$ bosh env
+... etc ...
+</code></pre>
+<p>The Genesis BOSH Kit makes the admin client secret and the admin user
+password identical, so this works in the general case.</p>
+<h2>Upload a BOSH Release</h2>
+<p>When BOSH goes to deploy software, it does so by way of <em>BOSH Releases</em>, a
+native packaging format specific to BOSH.  Genesis Kits take care of
+uploading their own releases, but for custom add-ons, or manual deployments,
+you may need to upload a release or two yourself.</p>
+<p>To upload a release:</p>
+<pre><code>$ bosh upload-release path/to/release-1.2.3.tar.gz
+</code></pre>
+<p>You can also upload by URL:</p>
+<pre><code>$ bosh upload-release https://some-host/path/to/release-1.2.3.tar.gz
+</code></pre>
+<p>To see what releases have been uploaded, use <code>bosh releases</code>:</p>
+<pre><code>$ bosh releases
+
+Using environment 'https://10.200.130.1' as client 'admin'
+
+Name                         Version               Commit Hash
+binary-buildpack             1.0.14*               cdf2d3ff+
+~                            1.0.11                60f6b0e9+
+bosh                         264.6.0               930eb48+
+~                            264.5.0*              e522d81+
+bosh-vsphere-cpi             45.1.0                45d0f21
+~                            45*                   857f3d2
+
+(*) Currently deployed
+(+) Uncommitted changes
+
+6 releases
+
+Succeeded
+</code></pre>
+<p>If a release has a <code>+</code> next to its commit hash, that means that the release
+was created while there were still local changes to its git repository.  For
+in-house releases, this could indicate that the release cannot be properly
+recreated, because changes may not have been committed after they were
+incorporated into the release.</p>
+<h2>Upload a Stemcell</h2>
+<p>BOSH only handles image-based deployment.  The images it uses are
+called <em>Stemcells</em>, because they can specialize into whatever VM
+type you need through BOSH releases.  Each Cloud / IaaS has its
+own set of Stemcells that are tailored to its peculiarities.</p>
+<p>Before you can deploy anything, you will need to upload a
+stemcell for your platform:</p>
+<pre><code>$ bosh upload-stemcell path/to/stemcell.tgz
+</code></pre>
+<p>or, specify a remote URL:</p>
+<pre><code>$ bosh upload-stemcell https://some-host/path/to/stemcell.tgz
+</code></pre>
+<p>Genesis Kits do not upload stemcells.</p>
+<p>To see what stemcells have already been uploaded:</p>
+<pre><code>$ bosh stemcells
+
+Using environment 'https://10.200.130.1' as client 'admin'
+
+Name                                      Version   OS             CPI  CID
+bosh-vsphere-esxi-ubuntu-trusty-go_agent  3468.21*  ubuntu-trusty  -    sc-cf483483-1be8-4a53-a244-378e89addf74
+~                                         3468.13*  ubuntu-trusty  -    sc-0fe9bcd7-6010-4e30-812f-49d69c71aed2
+~                                         3445.24   ubuntu-trusty  -    sc-3c54878e-7161-41f4-b8f6-d24f7d037bd7
+
+(*) Currently deployed
+
+3 stemcells
+
+Succeeded
+</code></pre>
+<h2>Re-Upload a Broken Stemcell or Release</h2>
+<p>If you attempt to upload a stemcell or BOSH release with the same
+name and version of one that already exists on the BOSH director,
+nothing will happen.</p>
+<p>Occasionally, however, you need to overwrite a stemcell or release
+with a better copy.  Perhaps the file didn’t download successfully
+and you uploaded a corrupt copy.  Perhaps the BOSH director ran
+out of disk space and only partially processed the file upload.</p>
+<p>Whatever the reason, the <code>upload-stemcell</code> and <code>upload-release</code>
+commands sport a <code>--fix</code> flag for just this situation:</p>
+<pre><code>$ bosh upload-stemcell --fix path/to/stemcell.tgz
+$ bosh upload-release  --fix path/to/release.tgz
+</code></pre>
+<h2>Clean Up a BOSH Director</h2>
+<p>Over time, your BOSH director will accumulate releases and
+stemcells that it no longer needs.  If you are diligent about
+patching systems when new stemcells come out, a lot of director
+disk space will be used by older stemcells that you no longer
+need.  Likewise, if you update your deployments to the latest and
+greatest releases regularly, you’ll have a lot of unused release
+archives on-disk.</p>
+<p>To clean them up, use the <code>bosh clean-up</code> command:</p>
+<pre><code>$ bosh clean-up
+</code></pre>
+<p>Yes, there’s a hyphen in the middle there.</p>
+<p>The <code>clean-up</code> command deletes most of the unused stemcells and
+releases.  Stemcells will be removed from the underlying cloud /
+IaaS; releases will be removed from the BOSH blobstore.  The most
+recent two unused releases and stemcells will remain, in case you
+need to downgrade a deployment to a previous revision.</p>
+<h2>Manage Cloud Config</h2>
+<p>BOSH <em>cloud config</em> is a YAML file that defines IaaS-specific
+configuration properties used by the director for deployments.
+These include things like VM types, networking, availability
+zones, etc.</p>
+<p>For full details on all the fun IaaS-specific options, refer to
+the <a href="https://bosh.io/docs/cloud-config.html">BOSH Cloud Config documentation</a>.</p>
+<p>You can get the current <code>cloud-config</code> like this:</p>
+<pre><code>$ bosh cloud-config
+$ bosh cloud-config &gt; cloud.yml
+</code></pre>
+<p>Saving your cloud config to a file is a great way to make changes
+to it.  Download the current config, modify it, and then upload
+the new version to BOSH.  That last step is handled by
+<code>update-cloud-config</code>:</p>
+<pre><code>$ bosh cloud-config &gt; cloud.yml
+$ vim cloud.yml
+$ bosh update-cloud-config cloud.yml
+</code></pre>
+<p>Every time you give BOSH a new cloud-config, it will mark all
+deployments as <em>outdated</em> until they are re-deployed with the
+latest configuration.</p>
+<h2>Configure a Runtime Add-on (Like Toolbelt)</h2>
+<p>BOSH uses a facility called <em>runtime configs</em> to inject
+configuration and software into its deployments, without having to
+modify the existing deployment manifest.  These <em>addons</em> can be
+anything: extra utilities, a virus scanner, firewall and
+intrusion detection software, monitoring agents etc.</p>
+<p>The following runtime configuration deploys the excellent
+<a href="https://github.com/cloudfoundry-community/toolbelt-boshrelease">Toolbelt BOSH release</a> to all VMs, enriching the on-box
+troubleshooting experience:</p>
+<pre><code>addons:
+  - name: toolbelt
+    jobs:
+      - name: toolbelt
+        release: toolbelt
+
+releases:
+  - name: toolbelt
+    version: 3.4.2
+    url:     https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v3.4.2/toolbelt-3.4.2.tgz
+    sha1:    2b4debac0ce6115f8b265ac21b196dda206e93ed
+</code></pre>
+<p>You can get the current <code>runtime-config</code> like this:</p>
+<pre><code>$ bosh runtime-config
+$ bosh runtime-config &gt; runtime.yml
+</code></pre>
+<p>As with <em>cloud configs</em>, saving your runtime config to a file is a
+great way to make changes to it.  Download the current config,
+modify it, and then upload the new version to BOSH.  That last
+step is handled by <code>update-runtime-config</code>:</p>
+<pre><code>$ bosh runtime-config &gt; runtime.yml
+$ vim runtime.yml
+$ bosh update-runtime-config runtime.yml
+</code></pre>
+<p>For more information, check the <a href="https://bosh.io/docs/runtime-config.html">BOSH Runtime Config
+documentation</a>.</p>
+<h2>View Deployment Health Information</h2>
+<p>There are a few interesting bits of information you can get out of
+BOSH, with respect to the health of the VMs it has deployed.</p>
+<p>First up, <code>bosh vms</code> shows you the agent status:</p>
+<pre><code>$ bosh -d vault vms
+Instance  Process State  AZ  IPs           VM CID       VM Type
+vault/0   running        z1  10.200.130.6  vm-98627dfd  small
+vault/1   failing        z1  10.200.130.5  vm-5c9638b1  small
+vault/2   running        z1  10.200.130.4  vm-a59d7f16  small
+</code></pre>
+<p>The possible values for <em>Process State</em> are:</p>
+<ol>
+<li><code>running</code> - Everything is OK</li>
+<li><code>failing</code> - The VM is up, but the deployed software isn’t</li>
+<li><code>unresponsive agent</code> - The BOSH director hasn’t heard from
+the agent on the VM in a while.</li>
+</ol>
+<p>You can also get system vitals out of BOSH:</p>
+<pre><code>bosh -d vault vms --vitals
+</code></pre>
+<p>The newer <code>bosh instances</code> provides similar information:</p>
+<pre><code>$ bosh -d vault instances
+Instance  Process State  AZ  IPs
+vault/0   running        z1  10.200.130.6
+vault/1   failing        z1  10.200.130.5
+vault/2   running        z1  10.200.130.4
+</code></pre>
+<p>To get detailed information about each instance, pass <code>--ps</code>:</p>
+<pre><code>$ bosh -d vault instances --ps
+Instance  Process    Process State  AZ  IPs
+vault/0   -          running        z1  10.200.130.6
+~         consul     running        -   -
+~         strongbox  running        -   -
+~         vault      running        -   -
+vault/1   -          running        z1  10.200.130.5
+~         consul     running        -   -
+~         strongbox  running        -   -
+~         vault      failing        -   -
+vault/2   -          running        z1  10.200.130.4
+~         consul     running        -   -
+~         strongbox  running        -   -
+~         vault      running        -   -
+</code></pre>
+<p>Something is wrong with the actual Vault process on <code>vault/1</code>.</p>
+<h2>Determine Who Has Persistent Disks</h2>
+<p>Persistent disks are vital to any deployments that involve durable
+data, like databases and storage solutions.  If you need to figure
+out which instances in a deployment have been assigned persistent
+disks, you can use the <code>--details</code> flag to <code>bosh instances</code></p>
+<pre><code>$ bosh -d vault instances --details
+Instance  Process State  AZ  IPs           State    VM CID       VM Type  Disk CIDs
+vault/0   running        z1  10.200.130.6  started  vm-98627dfd  small    disk-8970b8d2
+vault/1   running        z1  10.200.130.5  started  vm-5c9638b1  small    disk-d0ccdc58
+vault/2   running        z1  10.200.130.4  started  vm-a59d7f16  small    disk-204c8403
+</code></pre>
+<p>If there is a value in the <em>Disk CIDs</em> column, that instance has
+been given a persistent disk.</p>
+<h2>SSH Into an Instance</h2>
+<p>To get a remote shell on a BOSH-deployed instance, you can use the
+<code>bosh ssh</code> command:</p>
+<pre><code>$ bosh -d vault ssh vault/1
+</code></pre>
+<p>BOSH will provision you a temporary user account with <code>sudo</code>
+access, and then run the appropriate <code>ssh</code> commands to log into
+the instance, remotely, as that user.</p>
+<p>From there, you can look at logs, restart jobs and processes, and
+otherwise diagnose and troubleshoot.</p>
+<p>If BOSH is deploying instances behind a NAT device, you may need a
+<em>gateway</em> to bounce through for SSH access.  All this gateway
+needs is SSH access.  The <code>--gateway-*</code> options take care of the
+configuration:</p>
+<pre><code>$ bosh -d vault ssh                    \
+    --gw-host your-gateway-ip          \
+    --gw-user username                 \
+    --gw-private-key path/to/user/key  \
+    vault/1
+</code></pre>
+<h2>View Logs on a Deployed Instance</h2>
+<p>Once you’ve SSHed onto a deployed instance, you can see what the
+software you’re trying to deploy has been up to by perusing the
+logs.  BOSH releases almost always store logs under
+<code>/var/vcap/sys/log</code>, instead of more traditional places.</p>
+<p>Often, each component of the deployment will have a directory
+under <code>/var/vcap/sys/log</code>; logs live under those.  Often, releases
+will split their standard output and standard error streams into
+separate log files, suffixed <code>.stdout.log</code> and <code>.stderr.log</code>.</p>
+<h2>Restart a Monit Job</h2>
+<p>BOSH uses a system called <em>Monit</em> to supervise the processes that
+make up the software it deploys.  In addition to restarting
+defunct processes, Monit also informs the BOSH director of the
+health and state of the pieces of each deployment.  This is where
+the <em>Process State</em> values in <code>bosh vms</code> / <code>bosh instances</code> output
+come from.</p>
+<p>If you SSH into an instance, you can use the <code>monit</code> command (as
+the root user) to see what’s going on and restart processes.</p>
+<pre><code>$ monit summary
+The Monit daemon 5.2.5 uptime: 1d 1h 10m
+
+Process 'shield-agent'              failing
+Process 'vault'                     running
+Process 'shieldd'                   running
+Process 'nginx'                     running
+System 'system_localhost'           running
+</code></pre>
+<p>To restart a failing process:</p>
+<pre><code>$ monit restart shield-agent
+</code></pre>
+<p>It’s usually best to follow that up with:</p>
+<pre><code>$ watch monit summary
+</code></pre>
+<p>The <code>watch</code> command will run <code>monit summary</code> every 2 seconds, and
+keep its output on the screen in the same place, making it easy to
+notice when the process flips from <em>initializing</em> to <em>running</em>.</p>
+<h2>Run a “Cloud Check” Against The IaaS</h2>
+<p>If you suspect that the IaaS / Cloud layer is acting up, either by
+removing VMs or losing disk attachments, you can run a <em>cloud
+check</em> against a deployment.</p>
+<p>When BOSH runs a cloud check, it takes inventory of the VMs and
+disks that it ought to have, and compares that with what it
+actually has.  If it finds an discrepancies, you’ll be asked to
+resolve each one individually.</p>
+<pre><code>bosh -d vault cloud-check
+</code></pre>
+<p>For more information, check out the <a href="https://bosh.io/docs/cck.html">BOSH Cloud Check
+documentation</a>.</p>
+<h2>Run An Errand</h2>
+<p><em>Errands</em> are a special type of one-off task that a BOSH release
+can define.  Errands can do things like apply database migrations,
+initialize systems, run smoke tests, conduct an inventory of a
+cluster, and more.</p>
+<p>To see what errands are available, consult with your Genesis Kit
+documentation, or the documentation that came with the BOSH
+releases you are deploying.</p>
+<p>To see what errands are runnable:</p>
+<pre><code>$ bosh errands
+</code></pre>
+<p>To run an errand, specify it by name:</p>
+<pre><code>$ bosh run-errand my-errand
+</code></pre>
+<h2>Inspect An Errand VM</h2>
+<p>When errands fail, they print error logs to standard error, and
+then exit.  BOSH then deprovisions the errand VM, making it
+difficult to diagnose things like connectivity issues or
+authentication problems.</p>
+<p>If you specify the <code>--keep-alive</code> flag when you run the errand,
+however, BOSH will not perform this cleanup step.  You can then
+<code>bosh ssh</code> into the VM to perform your troubleshooting.</p>
+<pre><code>$ bosh run-errand my-errand --keep-alive
+... wait for the failure ...
+
+$ bosh ssh my-errand
+</code></pre>
+<p>Once you figure out the problem and correct it, you will want to
+run the errand again <em>without</em> the <code>--keep-alive</code> flag to get BOSH
+to clean up the errand VM one last time.</p>
+<h2>Fix An Unresponsive Agent</h2>
+<p>If BOSH lists an instance as <code>unresponsive agent</code>, it means it
+hasn’t heard from the agent, via the NATS message bus, in a while.</p>
+<p>BOSH doesn’t initiate conversation with deployed instances; it
+waits for them to contact it via the message bus.  Sometimes this
+fails because of networking configuration between the instance and
+the director.  Other times, TLS certificates get in the way.</p>
+<p>Often, a single unresponsive agent in an otherwise healthy
+deployment will clear up on its own.  Unless its an emergency,
+give the system some time to coalesce and see if it recovers.</p>
+<p>If lots of agents become unresponsive, it could point to a
+systemic or network-wide issue, like a bad route, failing router,
+misconfigured firewall, etc.  In these cases, start
+troubleshooting at the network and work your way back to the BOSH
+director.</p>
+<p>As a last resort, you can have BOSH forcibly recreate the
+instances via the <code>bosh recreate</code> command:</p>
+<pre><code>$ bosh -d vault recreate
+</code></pre>
+<p>This will detach any persistent disks (so that they survive),
+delete the running virtual machine instances, and bring up new
+copies.</p>
+<h2>Cancel a BOSH Task</h2>
+<p>Everything BOSH does it does via <em>tasks</em>.  You can use the <code>bosh tasks</code> command to get a list of currently executing, and recently
+executed tasks:</p>
+<pre><code>$ bosh tasks
+$ bosh tasks -r
+</code></pre>
+<p>Each task has a number, and you can use that number to identify
+that task and interact with it via the BOSH command-line utility.</p>
+<p>To view a task and follow its output (à la <code>tail -f</code>):</p>
+<pre><code>$ bosh task 12345
+</code></pre>
+<p>You can also cancel a task if you know its ID:</p>
+<pre><code>$ bosh cancel-task 12345
+</code></pre>
+<p>However, be aware that BOSH often cannot interrupt a task to
+cancel it, and instead has to wait for a “lull” in task processing
+to actually cancel it.  For example, when a deployment task is
+canceled, it will continue attempting to deploy software to the
+current instances it is working on, and only then will BOSH try to
+cancel it.  You may not even be <em>able</em> to cancel  a task to delete
+a deployment, depending on when you get to it.</p>
+<p>For more details, refer to the <a href="https://bosh.io/docs/director-tasks.html">BOSH Tasks
+documentation</a></p>
+<h2>Configure Multiple CPIs</h2>
+<p>As of v263, BOSH directors can support multiple CPIs for
+instrumenting lots of different IaaS instances.  You can deploy
+BOSH that talks to three different vCenters.</p>
+<p>This is a more advanced subject, but it’s really neat, so we want
+to include it in the runbook.  A full write-up can be found on the
+<a href="https://www.starkandwayne.com/blog/multi-cpi-bosh-one-bosh-to-rule-them-all">Stark &amp; Wayne blog</a>, but here’s a summary:</p>
+<ol>
+<li>Create a BOSH <em>CPI Config</em> and upload it</li>
+<li>Update BOSH <em>Cloud Config</em> with CPI information</li>
+<li>Re-upload / Fix Stemcells</li>
+<li>Assign AZs as appropriate</li>
+</ol>
+
+  </div>
+
+  <footer>
+    Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a>
+  </footer>
+
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript" src="runbook.js"></script>
+</body>
+</html>
