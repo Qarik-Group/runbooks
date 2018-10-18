@@ -491,10 +491,10 @@ In each kit there is a default for the os flavor and version:
 ```
 params:
   stemcell_os:      ubuntu-trusty
-  stemcell_version: latest
+  stemcell_version: 3468.latest
 ```
 
-To upgrade the stemcell version for a deployment start by uploading a new stemcell to the BOSH Director.  Full instuctions for doing this are located in the [BOSH Runbook under Uploading a Stemcell](bosh.md#upload-a-stemcell).
+To upgrade the stemcell version for a deployment start by uploading a new stemcell to the BOSH Director.  Full instuctions for doing this are located in the [BOSH Runbook under Uploading a Stemcell](https://runbooks.starkandwayne.com/bosh.html#upload-a-stemcell).  It should be noted that most kits ship pre-compiled BOSH releases and do not allow the major version of OS of the stemcell to be changed.  If you are currently using `3468.22` you should upload a newer version in the `3468` series, such as `3468.23`.
 
 
 Once the newer stemcell is uploaded you have two choices, each should be followed by a `genesis deploy`:
@@ -513,8 +513,11 @@ params:
 
 `stemcell_version` options:
 
-  * `latest` - Grabs the highest major.minor stemcell for the stemcell_os
-  * `3541.2` - Hard codes a this specific major.minor stemcell version
-  * `<major>.latest` - Grabs the highest minor stemcell for the listed major version, (ie `3451.latest`)
+  * `<major>.latest` - Grabs the highest minor stemcell for the listed major version, (ie `3468.latest`)
+  * `latest` - Grabs the highest major.minor stemcell for the stemcell_os.  This is not recommended since kits use pre-compiled releases and this option would allow you to try and use a different major release of stemcell.
+  * `3468.2` - Hard codes a this specific major.minor stemcell version
+
 
 Once the new stemcell is uploaded to the BOSH Director and any overrides to the version are provided to the environment yaml file perform a `genesis deploy` on the kit deployment. 
+
+
