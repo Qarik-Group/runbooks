@@ -138,7 +138,7 @@ infrastructure, but without breaking those that don't.
 Where this sharing configuration shines is during pipeline
 propagation of deployments.  By putting the changes at the top
 levels, you can test **the actual** changes in sandbox or
-prep rod environments before pushing them to production, and not
+pre prod environments before pushing them to production, and not
 getting downtime due to incorrect or partially omitted changes.
 Similar for infrastructure changes that are shared between test
 and production environments.  This leaves only things that are
@@ -481,3 +481,40 @@ same principle can be used to scale up other aspects of
 deployments, such as CPU, memory, or disk sizes — just keep in
 mind this may need to be done indirectly by specifying instance or
 disk types and adding the desired resources in your cloud-config.
+
+## Stemcell Version Upgrades
+
+Genesis provides a simple way for you to update stemcells for deployments based off of Genesis Kits.  The typical process is to upload a new stemcell to the BOSH Director and perform a `genesis deploy` on each deployment.
+
+In each kit there is a default for the os flavor and version:
+
+```
+params:
+  stemcell_os:      ubuntu-trusty
+  stemcell_version: latest
+```
+
+To upgrade the stemcell version for a deployment start by uploading a new stemcell to the BOSH Director.  Full instuctions for doing this are located in the [BOSH Runbook under Uploading a Stemcell](bosh.md#upload-a-stemcell).
+
+
+Once the newer stemcell is uploaded you have two choices, each should be followed by a `genesis deploy`:
+
+ - Do nothing and rely on the `latest` value for `params.stemcell_version` as defined by the kit
+ - Hardcode the stemcell os and/or version
+
+
+Overriding the default stemcell version in the Genesis kit is not normally recommended. If you want more explicit controls over the version of the stemcell you are using you can add the following parameters to your environment yml:
+
+```
+params:
+  stemcell_os: ubuntu-trusty
+  stemcell_version: see_options_below
+```
+
+`stemcell_version` options:
+
+  * `latest` - Grabs the highest major.minor stemcell for the stemcell_os
+  * `3541.2` - Hard codes a this specific major.minor stemcell version
+  * `<major>.latest` - Grabs the highest minor stemcell for the listed major version, (ie `3451.latest`)
+
+Once the new stemcell is uploaded to the BOSH Director and any overrides to the version are provided to the environment yaml file perform a `genesis deploy` on the kit deployment. 
