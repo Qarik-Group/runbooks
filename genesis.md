@@ -494,7 +494,7 @@ params:
   stemcell_version: 3468.latest
 ```
 
-To upgrade the stemcell version for a deployment start by uploading a new stemcell to the BOSH Director.  Full instuctions for doing this are located in the [BOSH Runbook under Uploading a Stemcell](https://runbooks.starkandwayne.com/bosh.html#upload-a-stemcell).  It should be noted that most kits ship pre-compiled BOSH releases and do not allow the major version of OS of the stemcell to be changed.  If you are currently using `3468.22` you should upload a newer version in the `3468` series, such as `3468.23`.
+To upgrade the stemcell version for a deployment start by uploading a new stemcell to the BOSH Director.  Full instuctions for doing this are located in the [BOSH Runbook under Uploading a Stemcell](/bosh.html#upload-a-stemcell).  It should be noted that most kits ship pre-compiled BOSH releases and do not allow the major version of OS of the stemcell to be changed.  If you are currently using `3468.22` you should upload a newer version in the `3468` series, such as `3468.23`.
 
 
 Once the newer stemcell is uploaded you have two choices, each should be followed by a `genesis deploy`:
