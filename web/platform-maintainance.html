@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Runbooks @Stark &amp; Wayne</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,intial-scale=1">
+</head>
+<body>
+  <nav class="desktop">
+    <span>Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All Runbooks</a></span>
+  </nav>
+  <nav class="mobile">
+    <span>&copy; <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a></span>
+    <span><a href="/">All</a></span>
+  </nav>
+
+  <header>
+    <h1>Platform Maintainance</h1>
+    <h2></h2>
+  </header>
+
+  <div id="m">
+    <h2>Deal with Certs Expiration</h2>
+<p>This guide is for the case that you use <a href="http://runbooks.starkandwayne.com/vault_and_safe.html">Vault and Safe</a>
+to manage your credentials for your BOSH and CF deployments.</p>
+<p><code>safe x509 validate [OPTIONS] path/to/cert</code> will validate a certificate in the Vault,
+checking CA signatories,expiration, name applicability, etc.</p>
+<p><code>safe x509 renew [OPTIONS] path/to/certificate</code> will renew the cert specified in the
+path. Option <code>-t</code> can be configured to define how long the cert will be valid for.
+It defaults to the last TTL used to issue or renew the certificate.</p>
+<p>A script can be written to iterate all the certs that need to be validated and renewed
+based the above safe commands.</p>
+<p>To take a step further, you can also use <a href="https://starkandwayne.com/blog/doomsday-an-x509-certificate-monitor/">Doomsday</a> to monitor your certs so you can take actions before your certs expire.</p>
+<h2>Migrate Your CF From One vSphere Cluster to Another</h2>
+<p>If you need to migrate your CF from one vSphere cluster to another, you can follow
+the following major steps in two different scenarios:</p>
+<p><strong>VMotion Works when VMs are Alive</strong></p>
+<ol>
+<li>
+<p>Check backup for CF is set successfully if you have any</p>
+</li>
+<li>
+<p>Turn off BOSH resurrection, otherwise BOSH will try to self-recover/recreate
+your VMs that are down when you try to migrate</p>
+</li>
+<li>
+<p>Create a new cluster in the same vCenter</p>
+</li>
+<li>
+<p>vMotion the CF VMs to the new cluster</p>
+</li>
+<li>
+<p>Delete or rename the old cluster</p>
+</li>
+<li>
+<p>Rename the new cluster to the old cluster’s name</p>
+</li>
+<li>
+<p>Enable Bosh resurrection</p>
+</li>
+</ol>
+<p>Everything should be working as normally after this process in the new cluster.</p>
+<p><strong>Vmotion Does Not Work when VMs are Alive</strong></p>
+<p>vMotion between the two clusters when VMs are running may not work due to
+the CPU compatibility and other issues between the two clusters. In this case, you
+have to power off VMs before you do vMotion. The steps for migration are as follows:</p>
+<ol>
+<li>
+<p>Check backup for CF is set successfully if you have any</p>
+</li>
+<li>
+<p>Turn off BOSH resurrection, otherwise BOSH will try to self-recover/recreate
+your VMs that are down when you try to migrate</p>
+</li>
+<li>
+<p>Create a new cluster in the same vCenter</p>
+</li>
+<li>
+<p>Run <code>bosh stop</code> on a subgroup of the VMs so there were still same type VMs running
+to keep the platform working. <code>bosh stop</code> without <code>--hard</code> flag by default will
+stop VM while keeping the persistent disk.</p>
+</li>
+<li>
+<p>Power off those BOSH stopped VMs to do vMotion to the new cluster</p>
+</li>
+<li>
+<p>After vMotion, bring the VMs in the new cluster up</p>
+</li>
+<li>
+<p>Repeat the above process until you migrate all the VMs over to the new cluster</p>
+</li>
+<li>
+<p>Delete or rename the old cluster</p>
+</li>
+<li>
+<p>Rename the new cluster to the old cluster’s name</p>
+</li>
+<li>
+<p>Turn the BOSH resurrection back on</p>
+</li>
+</ol>
+<p>Everything should be working as normally after this process in the new cluster.</p>
+<h2>Migrate vSphere Datastore for BOSH and CF</h2>
+<p>It is extremely important that you check the disks are successfully attached to
+the new datastore you would like to use before you move forward with your deployments.
+To migrate your BOSH and CF to a new datastore, you can follow the steps below.</p>
+<ol>
+<li>
+<p>Attach new datastore(s) to the hosts where the BOSH and CF VMs are running (Do not
+detach the old datastores)</p>
+</li>
+<li>
+<p>Change deployment manifest for the BOSH Director to configure vSphere CPI to
+reference new datastore(s)</p>
+</li>
+</ol>
+<pre><code>properties:
+  vsphere:
+    host: your_host
+    user: root
+    password: something_secret
+    datacenters:
+    - name: BOSH_DC
+      vm_folder: sandbox-vms
+      template_folder: sandbox-templates
+      disk_path: sandbox-disks
+      datastore_pattern: '\new-sandbox\z' # &lt;---
+      persistent_datastore_pattern: '\new-sandbox\z' # &lt;---
+      clusters: [SANDBOX]
+</code></pre>
+<ol start="3">
+<li>
+<p>Redeploy the BOSH Director</p>
+</li>
+<li>
+<p>Verify that the BOSH Director VM’s root, ephemeral and persistent disks are all
+now on the new datastore(s)</p>
+</li>
+<li>
+<p>Run <code>bosh deploy --recreate</code> for CF deployments so that VMs are recreated and
+persistent disks are reattached</p>
+</li>
+<li>
+<p>Verify that the persistent disks and VMs were moved to new datastore(s) and
+there are no remaining disks in the old datastore(s)</p>
+</li>
+</ol>
+
+  </div>
+
+  <footer>
+    Copyright &copy; 2018 <a target="_blank" href="https://starkandwayne.com">Stark &amp; Wayne</a>
+  </footer>
+
+  <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+  <script type="text/javascript" src="runbook.js"></script>
+</body>
+</html>

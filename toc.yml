@@ -47,3 +47,9 @@ runbooks:
     intro: |
       Genesis is the thread that ties it all together, from a deployment
       and management standpoint.
+
+  - title: Platform Maintainance
+    source: platform-maintainance.md
+    intro: |
+      This section covers some of the tasks you may perform when you maintain 
+      the CF platform.
