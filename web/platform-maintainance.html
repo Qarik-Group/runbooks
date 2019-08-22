@@ -23,7 +23,39 @@
   </header>
 
   <div id="m">
-    <h2>Deal with Certs Expiration</h2>
+    <h2>CF Push App: ERR Downloading Failed</h2>
+<p>There are many different possible reasons to cause “CF push app: ERR Downloading
+Failed”. This guide will show you how to debug such problems by going through an example.</p>
+<p>The following error messages were printed out when we started an app.</p>
+<pre><code>[cell/o] Creating container for app xx, container successfully created
+[cell/o] ERR Downloading Failed
+[cell/0] OUT cell-xxxxx stopping instance, destroying the container
+[api/0] OUT process crushed with type: &quot;web&quot;
+[api/0] OUT app instance exited
+</code></pre>
+<p>The first step is trying to figure out what failed to download. By knowing how CF push,
+stage and run its applications, we know that it already created a container, the next step
+will be downloading the droplet from the blobstore so it can be run in the container
+it created.</p>
+<p>Since it is the cell node needs to get the droplet, we ran the <code>bosh ssh</code> to the cell
+node to look for more detailed logs. By exploring the logs on the cell nodes, we found that
+there was a <code>bad tls</code> error message in the log entries. This tells us that the certificates
+are probably the issue.</p>
+<p>safe has a command <code>safe x509 validate [path to the cert]</code> which we can use to inspect
+and validate certificates. With a simple script, we looped through all of the
+certificates used in the misbehaving CF environment with the <code>safe validate</code> command.
+The outputs showed us all of the certificates that were expired.</p>
+<p>We then ran <code>safe x509 renew</code> against all of the expired certificates. After double
+checking that all of the expired certificates were successfully renewed, we then
+redeployed the CF in order to update the certificates.</p>
+<p>The redeployment went well, for the most part, except for when it came to the
+cell instances, it hung at the first one forever. We then tried <code>bosh redeploy</code>
+using the <code>--skip-drain</code> flag, unfortunately, this did not solve our issue completely.</p>
+<p>We ran <code>bosh ssh</code> to the cell that was hanging, and replaced all of the expired
+certificates in the config files manually, and then ran <code>monit restart all</code> on
+the cell. This helped to nudge the <code>bosh redeploy</code>  into moving forward happily.
+We got a happy running CF back.</p>
+<h2>Deal with Certs Expiration</h2>
 <p>This guide is for the case that you use <a href="http://runbooks.starkandwayne.com/vault_and_safe.html">Vault and Safe</a>
 to manage your credentials for your BOSH and CF deployments.</p>
 <p><code>safe x509 validate [OPTIONS] path/to/cert</code> will validate a certificate in the Vault,

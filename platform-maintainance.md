@@ -1,3 +1,44 @@
+## CF Push App: ERR Downloading Failed
+
+There are many different possible reasons to cause "CF push app: ERR Downloading 
+Failed". This guide will show you how to debug such problems by going through an example.
+
+The following error messages were printed out when we started an app.
+
+```
+[cell/o] Creating container for app xx, container successfully created
+[cell/o] ERR Downloading Failed
+[cell/0] OUT cell-xxxxx stopping instance, destroying the container
+[api/0] OUT process crushed with type: "web"
+[api/0] OUT app instance exited
+```
+The first step is trying to figure out what failed to download. By knowing how CF push, 
+stage and run its applications, we know that it already created a container, the next step 
+will be downloading the droplet from the blobstore so it can be run in the container
+it created. 
+
+Since it is the cell node needs to get the droplet, we ran the `bosh ssh` to the cell
+node to look for more detailed logs. By exploring the logs on the cell nodes, we found that 
+there was a `bad tls` error message in the log entries. This tells us that the certificates 
+are probably the issue.
+
+safe has a command `safe x509 validate [path to the cert]` which we can use to inspect
+and validate certificates. With a simple script, we looped through all of the 
+certificates used in the misbehaving CF environment with the `safe validate` command.
+The outputs showed us all of the certificates that were expired. 
+
+We then ran `safe x509 renew` against all of the expired certificates. After double 
+checking that all of the expired certificates were successfully renewed, we then
+redeployed the CF in order to update the certificates.
+
+The redeployment went well, for the most part, except for when it came to the
+cell instances, it hung at the first one forever. We then tried `bosh redeploy`
+using the `--skip-drain` flag, unfortunately, this did not solve our issue completely.
+
+We ran `bosh ssh` to the cell that was hanging, and replaced all of the expired 
+certificates in the config files manually, and then ran `monit restart all` on
+the cell. This helped to nudge the `bosh redeploy`  into moving forward happily.
+We got a happy running CF back.
 
 ## Deal with Certs Expiration
 
