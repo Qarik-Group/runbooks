@@ -1,3 +1,43 @@
+## Debugging Random Latency in API Response Times
+
+When we observe that the API has random response latency, we can perform the 
+following steps to better capture the issue. First, we need to explore the patterns:
+
+1) Is there any pattern to the commands or API calls that have experienced the 
+response latency? More specifically, does it occur when call `v2/info`, `cf login`,
+or API calls related to one app or all the apps?
+
+2) What is the frequency of the issue? Minute-level, hour-level or days?
+
+3) Is there any pattern in the time-of-day, day-of-week, or day-of-month that 
+this issue occurs?
+
+Next, in order to get more details when the issue occurs, the following debugging
+methods can be used:
+
+1) Repeatedly running commands to reproduce the latency issue or with the pattern
+observed
+in step one, to reproduce the issue.
+
+2) Turn on CF_TRACE=true when running commands
+
+3) Look at the output, locate where the latency occurs. For example, when you
+run `cf login -a url -p pass -u user`, it will first call `/v2/info`, then get 
+uaa endpoint information in the response,after that it will request to log into
+uaa. You can look at the output for http traffic to locate where the latency
+happens. Assume it happens after `/v2/info`, then you can keep breaking it down
+as run `cf login -a api_url`, so you can observe the latency happens before you
+provide credentials or after. Based on where latency happens, you will check
+different components to diagnose.
+
+4) Check the status and resource usage of the components involved, for example,
+go routers, apis, haproxy, etc
+
+5) Look at the logs on the related components. For example, if the latency
+only happens at `v2/info`, you will want to check the logs for API nodes, 
+and also any components you have such as DNS, load balancer or haproxy 
+before the request reaches the API nodes.
+
 ## CF Push App: ERR Downloading Failed
 
 There are many different possible reasons to cause "CF push app: ERR Downloading 
