@@ -30,8 +30,32 @@ $ brew install cf
 
 ## Log into Cloud Foundry
 
-Before you can interact with Cloud Foundry from the command-line,
-you need to set your CF API endpoint, and then authenticate:
+Before you can interact with Cloud Foundry from the command-line.
+
+If deployed with Genesis, use the `login` addon:
+```
+$ genesis do my-env login
+Running login addon for my-env
+Setting api endpoint to https://api.system.10.128.80.140.netip.cc...
+OK
+
+api endpoint:   https://api.system.10.128.80.140.netip.cc
+api version:    2.138.0
+API endpoint: https://api.system.10.128.80.140.netip.cc
+Authenticating...
+OK
+
+Use 'cf target' to view or set your target org and space.
+Saved current target as my-env
+
+
+api endpoint:   https://api.system.10.128.80.140.netip.cc
+api version:    2.138.0
+user:           admin
+No org or space targeted, use 'cf target -o ORG -s SPACE'
+```
+
+Without Genesis, you need to set your CF API endpoint, and then authenticate:
 
 ```
 $ cf api https://api.system.cf.example.com
@@ -79,7 +103,16 @@ You can set your `CF_HOME` environment variable to isolate these
 separate authentication contexts, but there's a better way!
 
 The _Targets_ plugin adds a new `cf set-target` command that
-manages this complexity for you.  To install:
+manages this complexity for you.  
+
+To install with Genesis:
+```
+$ genesis do my-env setup-cli
+Running setup-cli addon for snw-tliebel-lab
+ ...
+```
+
+To install manually:
 
 ```
 $ cf add-plugin-repo CF-Community https://plugins.cloudfoundry.org/
@@ -1137,4 +1170,13 @@ instance_groups:
               key:         (( vault secret/your-cf-env-vault-path/uaa/certs/server:key ))
               certificate: (( vault secret/your-cf-env-vault-path/uaa/certs/server:certificate ))
               passphrase: ""
+```
+
+## Bind Autoscaler to Genesis deplyed CF
+
+If the `autoscaler` feature was enabled in the kit at deployment, then you can
+bind easily with:
+
+```
+$ genesis do my-env bind-autoscaler
 ```
