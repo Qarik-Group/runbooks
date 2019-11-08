@@ -33,7 +33,9 @@ configure each of these Forges and their service offerings.
 ## Get information about your Blacksmith
 
 If deployed with Genesis, `genesis info my-env` will dump most of the relevant 
-information for the deployment.
+information for the deployment. This includes general env and deployment
+information, URLs and creds for the bosh director and UI, and the 
+catalog of services. 
 
 ```
 genesis info my-env
@@ -109,30 +111,6 @@ blacksmith catalog
 ================================================================================
 ```
 
-## Determine the IP address of your Blacksmith Broker
-
-You can get this from BOSH itself (or from `genesis my-env info`):
-
-```
-$ bosh -e my-env -d my-env-blacksmith vms
-Using environment 'https://10.128.80.0:25555' as user 'admin'
-
-Task 1297. Done
-
-Deployment 'my-env-blacksmith'
-
-Instance                                         Process State  AZ  IPs            VM CID                                   VM Type     Active
-blacksmith/e195326f-ddf2-4304-b84e-503b8da3e2f2  running        z1  10.128.80.129  vm-fe96913b-4710-4dad-b079-39d81f4dfed9  blacksmith  true
-
-1 vms
-
-Succeeded
-```
-
-Blacksmith runs on port `3000` by default, so the URL of this
-particular Blacksmith is `http://10.128.80.129:3000`.
-
-
 
 ## Register a Blacksmith Broker
 
@@ -140,10 +118,10 @@ Before your Cloud Foundry users can start provisioning services
 via your new Blacksmith, it has to be registered with Cloud
 Foundry, and enabled in the CF marketplace.
 
-If deployed with Genesis, the `register` addon makes this easy. 
+The `register` Genesis kit addon makes this easy. 
 
 ```
-$ genesis do my-env.yml register
+$ genesis do my-env register
 Running register addon for my-env
 authenticating to https://api.system.10.128.80.140.netip.cc as admin...
 Setting api endpoint to https://api.system.10.128.80.140.netip.cc...
@@ -165,44 +143,11 @@ enabling service access...
  ...
 ```
 
-If not deployed with Genesis or to register the broker manually, you'll need its IP address (see
-_Determining the IP address of your Blacksmith Broker_).
-
-```
-$ cf create-service-broker \
-     your-env-name-blacksmith \
-     blacksmith \
-     $(safe read secret/your/env/name/blacksmith/broker:password)
-     http://$IP:3000
-```
-
-The first argument is the name of your broker.  If you have
-multiple Blacksmith brokers, you will want to choose appropriate
-names to distinguish them.
-
-The second argument is the HTTP username for accessing the broker
-API.  This is always `blacksmith`.
-
-The third argument is the password for the HTTP `blacksmith` user.
-This is stored in the Vault, and the `$(safe ...)` call in the
-listing will extract it for you.
-
-The final argument is the URL of the broker API, which depends on
-the IP of the broker.  The port is always 3000.
-
 You can verify that the broker is registered, by checking that it
 is listed in the output of `cf service-brokers`
 
 For more details, refer to [Managing Service Brokers][cf-csb], in
 the official Cloud Foundry documentation.
-
-Next, you'll need to enable access to the Blacksmith broker's
-services and plans, so that Cloud Foundry users will see them in
-the marketplace:
-
-```
-$ cf enable-service-access your-env-name-blacksmith
-```
 
 This makes all the plans and services owned by the
 `your-env-name-blacksmith` broker available to all orgs and spaces
@@ -224,26 +169,21 @@ you defined in your Blacksmith manifests.
 The Blacksmith Management Web UI provides an overview of what is
 going on with a single Blacksmith Services Broker.
 
-If deployed with Genesis, it is as easy as:
+You can get the UI by using the `visit` addon
 
 ```
 $ genesis do my-env visit
 Running visit addon for my-env
 ```
 
-To access it without Genesis, you'll you'll need its IP address (see
-_Determining the IP address of your Blacksmith Broker_).
-
-All of Blacksmith is protected by HTTP basic authentication.  The
-username is always `blacksmith`, and the password can be found in
+The `visit` addon will perform auth for you. If for any reason, you need to 
+auth manually, all of Blacksmith is protected by HTTP basic authentication.  
+The username is always `blacksmith`, and the password can be found in
 your Vault:
 
 ```
-$ safe read secret/$ENV/blacksmith/broker:password
+$ safe read secret/my/env/blacksmith/broker:password
 ```
-
-(replacing `$ENV` with your actually environment prefix, something
- like `us/east/2/prod` for `us-east-2-prod`).
 
 The UI lists the current catalog:
 
