@@ -8,11 +8,13 @@ The _magic_ of Blacksmith is accomplished by way of _Forges_,
 small bits of configuration, packaged up as a BOSH release, that
 can be added into a Blacksmith deployment.
 
-The Blacksmith Genesis Kit packages three forges at the moment:
+The Blacksmith Genesis Kit packages five forges at the moment:
 
   1. [Redis][redis-forge]
   2. [RabbitMQ][rabbitmq-forge]
   3. [PostgreSQL][postgresql-forge]
+  4. [MariaDB][mariadb-forge]
+  5. [Kubernetes][kubernetes-forge]
 
 Refer to their specific project pages for more details information
 on their features and configuration.
@@ -23,25 +25,104 @@ configure each of these Forges and their service offerings.
 [redis-forge]:      https://github.com/blacksmith-community/redis-forge-boshrelease
 [rabbitmq-forge]:   https://github.com/blacksmith-community/rabbitmq-forge-boshrelease
 [postgresql-forge]: https://github.com/blacksmith-community/postgresql-forge-boshrelease
+[mariadb-forge]: https://github.com/blacksmith-community/mariadb-forge-boshrelease
+[kubernetes-forge]: https://github.com/blacksmith-community/kubernetes-forge-boshrelease
 
 [blacksmith-kit]: https://github.com/genesis-community/blacksmith-genesis-kit
 
+## Get information about your Blacksmith
 
+If deployed with Genesis, `genesis info my-env` will dump most of the relevant 
+information for the deployment.
+
+```
+genesis info my-env
+
+================================================================================
+
+BLACKSMITH Deployment for Environment 'my-env'
+
+  Last deployed about a week and a half ago (10:04PM on Oct 25, 2019 UTC)
+             by admin
+        to BOSH my-env
+   based on kit blacksmith/0.5.0
+          using Genesis v2.6.16
+  with manifest .genesis/manifests/my-env.yml (redacted)
+
+--------------------------------------------------------------------------------
+
+ca certificate
+ ...
+
+
+bosh env
+  Using environment 'https://10.128.80.129:25555' as client 'admin'
+
+  Name               my-env-blacksmith
+  UUID               e33feb30-0e9d-4461-906e-18239abba00c
+  Version            270.2.0 (00000000)
+  Director Stemcell  ubuntu-xenial/315.36
+  CPI                vsphere_cpi
+  Features           compiled_package_cache: disabled
+                     config_server: disabled
+                     local_dns: enabled
+                     power_dns: disabled
+                     snapshots: disabled
+  User               admin
+
+  Succeeded
+
+
+blacksmith (internal) bosh director
+  bosh url: https://10.128.80.129:25555
+  username: admin
+  password: ...
+
+
+blacksmith web management UI
+  web url:   http://10.128.80.129:3000
+  username:  blacksmith
+  password:  ...
+  clickable: ...
+
+
+blacksmith catalog
+  Service     Plans          Tags
+  =======     =====          ====
+  mariadb     standalone     blacksmith
+                             dedicated
+                             mariadb
+
+  postgresql  small-cluster  blacksmith
+              standalone     dedicated
+                             postgresql
+
+  rabbitmq    small-cluster  blacksmith
+              standalone     dedicated
+                             rabbitmq
+
+  redis       standalone     blacksmith
+                             dedicated
+                             redis
+
+
+================================================================================
+```
 
 ## Determine the IP address of your Blacksmith Broker
 
-You can get this from BOSH itself:
+You can get this from BOSH itself (or from `genesis my-env info`):
 
 ```
-$ bosh -d your-blacksmith vms
-Using environment 'https://10.0.0.4' as client 'admin'
+$ bosh -e my-env -d my-env-blacksmith vms
+Using environment 'https://10.128.80.0:25555' as user 'admin'
 
-Task 5923. Done
+Task 1297. Done
 
-Deployment 'your-blacksmith'
+Deployment 'my-env-blacksmith'
 
-Instance                                         Process State  AZ  IPs       VM CID                                   VM Type
-blacksmith/5600d462-f8c8-4a85-ae7b-2028ae4ffafe  running        z1  10.5.6.7  vm-0e68f44e-a768-418a-9c97-3c1d489ae000  blacksmith
+Instance                                         Process State  AZ  IPs            VM CID                                   VM Type     Active
+blacksmith/e195326f-ddf2-4304-b84e-503b8da3e2f2  running        z1  10.128.80.129  vm-fe96913b-4710-4dad-b079-39d81f4dfed9  blacksmith  true
 
 1 vms
 
@@ -49,7 +130,7 @@ Succeeded
 ```
 
 Blacksmith runs on port `3000` by default, so the URL of this
-particular Blacksmith is `http://10.5.6.7:3000`.
+particular Blacksmith is `http://10.128.80.129:3000`.
 
 
 
@@ -59,7 +140,32 @@ Before your Cloud Foundry users can start provisioning services
 via your new Blacksmith, it has to be registered with Cloud
 Foundry, and enabled in the CF marketplace.
 
-To register the broker, you'll need its IP address (see
+If deployed with Genesis, the `register` addon makes this easy. 
+
+```
+$ genesis do my-env.yml register
+Running register addon for my-env
+authenticating to https://api.system.10.128.80.140.netip.cc as admin...
+Setting api endpoint to https://api.system.10.128.80.140.netip.cc...
+OK
+
+api endpoint:   https://api.system.10.128.80.140.netip.cc
+api version:    2.138.0
+Not logged in. Use 'cf login' to log in.
+API endpoint: https://api.system.10.128.80.140.netip.cc
+Authenticating...
+OK
+
+Use 'cf target' to view or set your target org and space.
+creating service broker my-env-blacksmith...
+Creating service broker my-env-blacksmith as admin...
+OK
+
+enabling service access...
+ ...
+```
+
+If not deployed with Genesis or to register the broker manually, you'll need its IP address (see
 _Determining the IP address of your Blacksmith Broker_).
 
 ```
@@ -118,27 +224,15 @@ you defined in your Blacksmith manifests.
 The Blacksmith Management Web UI provides an overview of what is
 going on with a single Blacksmith Services Broker.
 
-To access it, you'll need to know the service broker VM IP
-address, which you can get from BOSH itself:
+If deployed with Genesis, it is as easy as:
 
 ```
-$ bosh -d your-blacksmith vms
-Using environment 'https://10.0.0.4' as client 'admin'
-
-Task 5923. Done
-
-Deployment 'your-blacksmith'
-
-Instance                                         Process State  AZ  IPs       VM CID                                   VM Type
-blacksmith/5600d462-f8c8-4a85-ae7b-2028ae4ffafe  running        z1  10.5.6.7  vm-0e68f44e-a768-418a-9c97-3c1d489ae000  blacksmith
-
-1 vms
-
-Succeeded
+$ genesis do my-env visit
+Running visit addon for my-env
 ```
 
-Blacksmith runs on port `3000` by default, so you can open a
-browser to `http://10.5.6.7:3000`.
+To access it without Genesis, you'll you'll need its IP address (see
+_Determining the IP address of your Blacksmith Broker_).
 
 All of Blacksmith is protected by HTTP basic authentication.  The
 username is always `blacksmith`, and the password can be found in
@@ -498,7 +592,24 @@ For more advanced troubleshooting, you may need to SSH into a VM
 on a service deployment.  To do that, you first need to target
 that director.
 
-First, set up a BOSH alias for the Blacksmith BOSH director:
+If deployed with Genesis:
+```
+$ genesis do my-env bosh
+Running bosh addon for my-env
+Logging you in as user 'admin'...
+Using environment 'https://10.128.80.129:25555'
+
+Username (): admin
+Password ():
+
+Using environment 'https://10.128.80.129:25555' as client 'admin'
+
+Logged in to 'https://10.128.80.129:25555'
+
+Succeeded
+```
+
+To do this manually, set up a BOSH alias for the Blacksmith BOSH director:
 ```
 $ bosh -e https://$IP:25555 \
        --ca-cert <(safe read secret/your/env/name/blacksmith/tls/ca:certificate) \
