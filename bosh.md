@@ -12,8 +12,44 @@ documentation][bosh-docs].
 ## Log Into Your Director
 
 Before you can run any BOSH commands, you should set up an alias for it, in
-your local configuration, and authenticate.  This is done via the `bosh
-alias-env` command:
+your local configuration, and authenticate.  
+
+If deployed with Genesis, this is done with the `alias` addon:
+```
+$ genesis do my-env alias
+Running alias addon for my-env
+Using environment 'https://10.128.80.0:25555' as user 'admin'
+
+Name               my-env-bosh
+UUID               1f7de7f1-bb35-4b12-9f2a-556c1dd77958
+Version            269.0.1 (00000000)
+Director Stemcell  ubuntu-xenial/315.34
+CPI                vsphere_cpi
+Features           compiled_package_cache: disabled
+                   config_server: enabled
+                   local_dns: enabled
+                   power_dns: disabled
+                   snapshots: disabled
+
+Succeeded
+```
+
+Similarly, use the `login` addon to login:
+```
+$ genesis do my-env login
+Running login addon for my-env
+Logging you in as user 'admin'...
+Using environment 'https://10.128.80.0:25555'
+
+Email (): admin
+Password ():
+
+Successfully authenticated with UAA
+
+Succeeded
+```
+
+If not deployed with Genesis, this is done via the `bosh alias-env` command:
 
 ```
 $ bosh alias-env your-env \
@@ -147,8 +183,17 @@ type you need through BOSH releases.  Each Cloud / IaaS has its
 own set of Stemcells that are tailored to its peculiarities.
 
 Before you can deploy anything, you will need to upload a
-stemcell for your platform:
+stemcell for your platform.
 
+Genesis has an interactive addon for this as well:
+```
+$ genesis do my-env upload-stemcells
+Running upload-stemcells addon for my-env
+
+Select the release family for the vsphere-esxi ubuntu-xenial stemcell you wish to upload:
+ ...
+```
+Or to upload manually:
 ```
 $ bosh upload-stemcell path/to/stemcell.tgz
 ```
@@ -159,7 +204,6 @@ or, specify a remote URL:
 $ bosh upload-stemcell https://some-host/path/to/stemcell.tgz
 ```
 
-Genesis Kits do not upload stemcells.
 
 To see what stemcells have already been uploaded:
 
@@ -290,7 +334,12 @@ releases:
     url:     https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v3.4.2/toolbelt-3.4.2.tgz
     sha1:    2b4debac0ce6115f8b265ac21b196dda206e93ed
 ```
-
+Genesis has an interactive addon to help generate the runtime-config:
+```
+$ genesis do my-env runtime-config
+Running runtime-config addon for my-env
+ ...
+```
 You can get the current `runtime-config` like this:
 
 ```
