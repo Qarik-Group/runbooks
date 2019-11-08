@@ -532,7 +532,7 @@ For more advanced troubleshooting, you may need to SSH into a VM
 on a service deployment.  To do that, you first need to target
 that director.
 
-If deployed with Genesis:
+Run the `bosh` Genesis addon: 
 ```
 $ genesis do my-env bosh
 Running bosh addon for my-env
@@ -547,22 +547,6 @@ Using environment 'https://10.128.80.129:25555' as client 'admin'
 Logged in to 'https://10.128.80.129:25555'
 
 Succeeded
-```
-
-To do this manually, set up a BOSH alias for the Blacksmith BOSH director:
-```
-$ bosh -e https://$IP:25555 \
-       --ca-cert <(safe read secret/your/env/name/blacksmith/tls/ca:certificate) \
-       alias-env your-env-blacksmith
-```
-
-Then, login with the `admin` credentials:
-
-```
-$ safe read secret/your/env/name/blacksmith/users/admin:password
-secret-password-here
-
-$ bosh -e your-env-blacksmith login
 ```
 
 From there, you can run all the normal BOSH commands against the
