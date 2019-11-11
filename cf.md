@@ -32,7 +32,7 @@ $ brew install cf
 
 Before you can interact with Cloud Foundry from the command-line.
 
-If deployed with Genesis, use the `login` addon:
+This is done via the `login` Genesis kit addon:
 ```
 $ genesis do my-env login
 Running login addon for my-env
@@ -55,41 +55,6 @@ user:           admin
 No org or space targeted, use 'cf target -o ORG -s SPACE'
 ```
 
-Without Genesis, you need to set your CF API endpoint, and then authenticate:
-
-```
-$ cf api https://api.system.cf.example.com
-OK
-
-api endpoint:   https://api.system.cf.example.com
-api version:    2.105.0
-
-$ cf login
-API endpoint: https://api.system.cf.example.com
-
-Email> admin
-Password>
-Authenticating...
-OK
-
-API endpoint:   https://api.system.cf.example.com (API version: 2.106.0)
-User:           admin
-Org:            system
-Space:          system
-```
-
-If you ever need to re-authenticate, you can skip the `cf api`
-step and go straight to `cf login`.
-
-You can also use `cf auth`, which is non-interactive:
-
-```
-$ cf auth admin $(safe read secret/path/to/cf/admin_user:password)
-```
-
-Which leverages `safe` to pull the admin credentials for you.
-
-
 
 ## Manage Multiple Cloud Foundries with One CLI
 
@@ -108,15 +73,8 @@ manages this complexity for you.
 To install with Genesis:
 ```
 $ genesis do my-env setup-cli
-Running setup-cli addon for snw-tliebel-lab
+Running setup-cli addon for my-env
  ...
-```
-
-To install manually:
-
-```
-$ cf add-plugin-repo CF-Community https://plugins.cloudfoundry.org/
-$ cf install-plugin Targets -r CF-Community
 ```
 
 (You will have to do this on every jumpbox you use)
