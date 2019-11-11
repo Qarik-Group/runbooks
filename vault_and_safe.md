@@ -27,13 +27,6 @@ This initialization will automatically unseal the vault, so you
 don't have to [do it manually](#unseal-the-vault).  It also
 creates a test secret `secret/handshake` for testing.
 
-If you're not using Genesis, you must manually initialize the
-vault using `safe vault operator init` after targeting, then
-[manually unsealing](#unseal-the-vault), and then authenticating to
-the new Vault, and finally adding the test secret using `safe set
-secret/handshake knock=knock`.
-
-
 
 ## Target and Authenticate to a Vault
 
@@ -43,43 +36,23 @@ authenticate to it using Safe.
 Easiest way to do this is with `genesis do my-env target`. Give it the token 
 that was generated on init to target and authenticate to the vault. 
 
-If the vault is not apart of a genesis deployment, you can do this manually 
-as well. You need to know the IP address or fully-qualified domain name of your 
-Vault server, whether it is using HTTPS (recommended) or HTTP, and if it has 
-a self-signed certificate.
-
-To find the Vault IP addresses from BOSH, you can run the
-following command:
-
 ```
-$ bosh -d your-vault vms
-Instance  Process State  AZ  IPs           VM CID       VM Type
-vault/0   running        z1  10.200.130.6  vm-98627dfd  small
-vault/1   running        z1  10.200.130.5  vm-5c9638b1  small
-vault/2   running        z1  10.200.130.4  vm-a59d7f16  small
-```
+$ genesis do my-env target
+Running target addon for my-env
 
-For example, if your Vault is located at
-`secrets.cloud.mycorp.com` and uses a certificate signed by a
-third-party certificate authority, and you want to refer to this
-Vault as `myvault`, you can create a target for this Vault with
-the following command:
+Specifying --target to the target command makes no sense; ignoring...
+Currently targeting my-env at https://10.128.80.12
+Skipping TLS certificate validation
+Uses Strongbox at http://10.128.80.12:8484/strongbox
 
-```
-$ safe target https://secrets.cloud.mycorp.com myvault
-```
+Authenticating against my-env at https://10.128.80.12
+Token:
 
-If instead you are using a self-signed certificate, you would add
-a `-k` option to that command.  Furthermore, if you target an IP
-address directly without TLS (on an internal network, for
-example), you have to issue a command similar to:
-
+Retrieving status of Vault via node 10.128.80.12
+https://10.128.80.12:443 is unsealed
+https://10.128.80.13:443 is unsealed
+https://10.128.80.14:443 is unsealed
 ```
-$ safe target http://10.0.200.44 lab-vault
-```
-
-to create a target named `lab-vault` that targets a Vault at
-10.0.200.44 without TLS.
 
 To see your targets, run the `safe targets` command:
 
@@ -87,7 +60,8 @@ To see your targets, run the `safe targets` command:
 $ safe targets
 
 Known Vault targets - current target indicated with a (*):
-(*) lab-vault   (insecure) http://10.0.200.44
+(*) my-env      (noverify) https://10.128.80.12
+    lab-vault   (insecure) http://10.0.200.44
     myvault                https://secrets.cloud.mycorp.com
 ```
 
@@ -343,20 +317,6 @@ https://10.128.80.12:443 is unsealed
 https://10.128.80.13:443 is unsealed
 https://10.128.80.14:443 is unsealed
 ```
-
-If you are using a Vault that was not deployed by Genesis, you
-will have to manually unseal each Vault node, individually.
-
-For each IP (which you can get via `bosh vms`): IP, run:
-
-```
-safe vault operator unseal --address <protocol://ip:port>
-```
-
-This will prompt you for one (and only one) key.  Keep running
-that command until enough keys have been entered, and then move
-onto the next IP.
-
 
 
 ## Common Errors and Their Solutions
