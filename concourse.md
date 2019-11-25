@@ -200,8 +200,9 @@ give someone access to Concourse without giving them access to Genesis
 
 First thing is to install `fly`. Easiest way to get the correct version 
 of `fly` is from the Apple, Windows, or Linux buttons in the concourse UI. 
-They can be found always on the bottom bar of most concourse screens (usually
-towards the right) as well as on the welcome screen prior to login. 
+They can be found on the bottom bar of most concourse screens (usually
+towards the right). They can also be found on the welcome screen prior 
+to login. 
 
 ![Concourse Login with Github](images/concourse/fly-download.png)
 
