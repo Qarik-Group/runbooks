@@ -496,3 +496,12 @@ Note: for Genesis deployments, you should refer to the Genesis
 runbooks, since `genesis` actually manages the pipeline
 definition, and has first-class support for configuring Concourse
 on your behalf.
+
+## Setup Vault Approle for Genesis
+
+If you wish to use the pipeline features of genesis, you first need to create
+an approle within vault. The easiest way to do this is by running: 
+
+```
+$ genesis do my-env setup-approle
+```
