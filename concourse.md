@@ -477,7 +477,7 @@ Concourse has a complete manifest that it uses to run your
 pipeline.  You can use `fly` to retrieve this manifest.
 
 ```
-$ fly -t ci get-pipeline -p name-of-pipeline
+$ genesis do my-env fly get-pipeline -p name-of-pipeline
 ```
 
 This will dump a (probably very large) YAML document, to standard
@@ -489,7 +489,7 @@ To create a new pipeline, assuming you have already written the
 YAML definition file (the "manifest"), all you need to do is:
 
 ```
-$ fly -t ci set-pipeline -p name-of-pipeline path/to/def.yml
+$ genesis do my-env fly set-pipeline -p name-of-pipeline path/to/def.yml
 ```
 
 Note: for Genesis deployments, you should refer to the Genesis
