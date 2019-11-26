@@ -12,43 +12,43 @@ documentation][bosh-docs].
 ## Log Into Your Director
 
 Before you can run any BOSH commands, you should set up an alias for it, in
-your local configuration, and authenticate.  This is done via the `bosh
-alias-env` command:
+your local configuration, and authenticate.  
 
+Via Genesis, this is done with the `alias` addon:
 ```
-$ bosh alias-env your-env \
-    -e https://bosh-ip:25555 \
-    --ca-cert <(safe get secret/your/env/bosh/ssl/ca:certificate)
+$ genesis do my-env alias
+Running alias addon for my-env
+Using environment 'https://10.128.80.0:25555' as user 'admin'
 
-Using environment 'https://10.200.130.1' as anonymous user
-
-Name      your-env
-UUID      9d22659b-a582-411c-a6d4-2ccc24211d4c
-Version   263.2.0 (00000000)
-CPI       vsphere_cpi
-Features  compiled_package_cache: disabled
-          config_server: disabled
-          dns: disabled
-          snapshots: disabled
-User      (not logged in)
+Name               my-env-bosh
+UUID               1f7de7f1-bb35-4b12-9f2a-556c1dd77958
+Version            269.0.1 (00000000)
+Director Stemcell  ubuntu-xenial/315.34
+CPI                vsphere_cpi
+Features           compiled_package_cache: disabled
+                   config_server: enabled
+                   local_dns: enabled
+                   power_dns: disabled
+                   snapshots: disabled
 
 Succeeded
 ```
 
-Future BOSH commands will only need to specify `-e your-env` to target this
-BOSH director, instead of having to specify the full URL and certificate
-authority certificate.
+Creating this alias allows future BOSH commands to only need to specify 
+`-e my-env` to target this BOSH director, instead of having to specify 
+the full URL and certificate authority certificate.
 
-Since we are still _anonymous_, let's go ahead and log in:
-
+Now that we have an alias, we can similarly use the `login` addon to login:
 ```
-$ bosh -e your-env login
-Username (): admin
+$ genesis do my-env login
+Running login addon for my-env
+Logging you in as user 'admin'...
+Using environment 'https://10.128.80.0:25555'
+
+Email (): admin
 Password ():
 
-Using environment 'https://10.200.130.1' as client 'admin'
-
-Logged in to 'https://10.200.130.1'
+Successfully authenticated with UAA
 
 Succeeded
 ```
@@ -56,24 +56,25 @@ Succeeded
 You can use the `bosh env` command to verify that you are logged in:
 
 ```
-$ bosh -e your-env env
+$ bosh -e my-env env
+Using environment 'https://10.128.80.0:25555' as user 'admin'
 
-Using environment 'https://10.200.130.1' as client 'admin'
-
-Name      your-bosh
-UUID      9d22659b-a582-411c-a6d4-2ccc24211d4c
-Version   263.2.0 (00000000)
-CPI       vsphere_cpi
-Features  compiled_package_cache: disabled
-          config_server: disabled
-          dns: disabled
-          snapshots: disabled
-User      admin
+Name               my-env-bosh
+UUID               1f7de7f1-bb35-4b12-9f2a-556c1dd77958
+Version            269.0.1 (00000000)
+Director Stemcell  ubuntu-xenial/315.34
+CPI                vsphere_cpi
+Features           compiled_package_cache: disabled
+                   config_server: enabled
+                   local_dns: enabled
+                   power_dns: disabled
+                   snapshots: disabled
+User               (not logged in)
 
 Succeeded
 ```
 
-You only need to `bosh login` for interactive (i.e. jumpbox) use.  For
+You only need to `login` for interactive (i.e. jumpbox) use.  For
 automated scripts, you can set the `BOSH_CLIENT_ID` and `BOSH_CLIENT_SECRET`
 environment variables to `admin` and the password:
 
@@ -147,8 +148,17 @@ type you need through BOSH releases.  Each Cloud / IaaS has its
 own set of Stemcells that are tailored to its peculiarities.
 
 Before you can deploy anything, you will need to upload a
-stemcell for your platform:
+stemcell for your platform.
 
+Genesis has an interactive addon for this as well:
+```
+$ genesis do my-env upload-stemcells
+Running upload-stemcells addon for my-env
+
+Select the release family for the vsphere-esxi ubuntu-xenial stemcell you wish to upload:
+ ...
+```
+Or to upload manually, or a stemcell not supplied in the kit:
 ```
 $ bosh upload-stemcell path/to/stemcell.tgz
 ```
@@ -159,7 +169,6 @@ or, specify a remote URL:
 $ bosh upload-stemcell https://some-host/path/to/stemcell.tgz
 ```
 
-Genesis Kits do not upload stemcells.
 
 To see what stemcells have already been uploaded:
 
@@ -290,7 +299,12 @@ releases:
     url:     https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v3.4.2/toolbelt-3.4.2.tgz
     sha1:    2b4debac0ce6115f8b265ac21b196dda206e93ed
 ```
-
+Genesis has an interactive addon to help generate the runtime-config:
+```
+$ genesis do my-env runtime-config
+Running runtime-config addon for my-env
+ ...
+```
 You can get the current `runtime-config` like this:
 
 ```

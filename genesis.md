@@ -96,7 +96,7 @@ through pipeline deployments.
 
 ## Share Configuration Between Environments
 
-Genesis environment files are meant to make you deployments
+Genesis environment files are meant to make your deployments
 easier, and this included deployment infrastructure and lifecycle
 management.  To this end, Genesis uses hierarchical naming to group
 and distribute environment information.
@@ -224,24 +224,26 @@ specified under the `kit.version` property.
 
 To upgrade a kit to a newer version, you will need to download the
 new version and set the environments to use it.  The `genesis
-download <kit>[/<version>]` command is used to get the kit.  If
+fetch-kit <kit>[/<version>]` command is used to get the kit.  If
 you want to use the  latest version, you can omit the
 `/<version>` part.
 
 ```
-$ genesis download vault/1.0.1
-Downloading Genesis kit vault, version 1.0.1
+$ genesis fetch-kit vault/1.5.0
+Attempting to retrieve Genesis kit vault (v1.5.0)...
+Downloaded version 1.5.0 of the vault kit
 
-$ genesis download vault
-Downloading Genesis kit vault (latest version)
+$ genesis fetch-kit vault
+Attempting to retrieve Genesis kit vault (latest version)...
+Downloaded version 1.5.1 of the vault kit
 
-$ ls -1 .genesis/kits
-vault-1.0.1.tar.gz
-vault-1.1.0.tar.gz
+$ genesis list-kits
+
+Kit: vault
+  v1.4.0
+  v1.5.0
+  v1.5.1
 ```
-
-If you download the latest, you will need to look in the
-`.genesis/kits` directory to see what version was retrieved.
 
 Once you have the version of the kit you want to use,  you need to
 update the kit version.  This will be found under the
@@ -306,56 +308,43 @@ Sometimes you will get messages stating you are missing secrets in
 the Vault:
 
 ```
-38 error(s) detected:
- - $.instance_groups.bosh.jobs.uaa.properties.login.saml.serviceProviderCertificate: secret secret/myorg/testing/bosh/ssl/uaa-sp:certificate not found
- - $.instance_groups.bosh.jobs.uaa.properties.login.saml.serviceProviderKey: secret secret/myorg/testing/bosh/ssl/uaa-sp:key not found
- - $.instance_groups.bosh.jobs.uaa.properties.uaa.clients.admin.secret: secret secret/myorg/testing/bosh/users/admin:password not found
- ...
+  [Checking generated certificates]
+  ✘  secret/snw/tliebel/lab/shield/certs/ca [CA certificate]
+     ✘  :certificate
+     ✘  :combined
+     ✘  :crl
+     ✘  :key
+     ✘  :serial
 ```
 
-This is because the manifest compilation phase failed to find
-required secrets.  In order to preemptively determine this before
-we deploy, you can run `genesis secrets check <my-env>`.  It will
-ask you which vault your secrets are in, then provide a list of
-secrets that are missing.
+This is because genesis verifies that all secrets are present prior to 
+attempting to compile the manifest.  If you would like to run this check 
+manually, you can run `genesis check-secrets <my-env>`.  
 
 ```
-$ genesis secrets check myorg-testing.yml
+$ genesis check-secrets snw-tliebel-lab
+Retrieving secrets for snw/tliebel/lab/shield...ok
 
-Known Vault targets - current target indicated with a (*):
-(*) lab-vault   (insecure) http://192.168.1.101
-    myvault                https://secrets.cloud.mycorp.com
+[Checking generated credentials]
+  ✔  secret/snw/tliebel/lab/shield/agent [ssh]
 
-Which Vault would you like to target?
-> lab-vault
-Now targeting dev at http://127.0.0.1:8200
-
-Missing 57 credentials or certificates:
-  * [random] secret/dbell/testing/bosh/blobstore/agent:password
-  * [random] secret/dbell/testing/bosh/blobstore/director:password
-  * [random] secret/dbell/testing/bosh/credhub/encryption:key
-  ...
+[Checking generated certificates]
+  ✘  secret/snw/tliebel/lab/shield/certs/ca [CA certificate]
+     ✘  :certificate
+     ✘  :combined
+     ✘  :crl
+     ✘  :key
+     ✘  :serial
+  ✔  secret/snw/tliebel/lab/shield/certs/server [certificate]
+  ✔  secret/snw/tliebel/lab/shield/vault/ca [CA certificate]
+  ✔  secret/snw/tliebel/lab/shield/vault/server [certificate]
 ```
-
-
-
-## Track Down Vault Merge Errors
-
-If you have no missing secrets, but `genesis deploy` or `genesis
-manifest` are still complaining (through `spruce`) about missing
-secrets, check that you are targeting the correct vault.
-
-`spruce` and `safe` work quite well together; `spruce` will always
-use the current `safe` target, and authentication credentials, to
-look up secrets.  To fix this, re-target the correct Vault and
-re-attempt your Genesis command.
-
 
 
 ## Add Missing Secrets
 
 If you do have missing secrets, possibly due to a kit upgrade, you
-can run `genesis secrets add my-env` to add any missing secrets to
+can run `genesis add-secrets my-env` to add any missing secrets to
 the `my-env` deployment environment.
 
 
@@ -365,8 +354,8 @@ the `my-env` deployment environment.
 You can change all the secrets that were generated when you
 created a new environment, either as a response to accidentally
 leaked secrets, or as part of a scheduled cycling of secrets.
-This is done with the `genesis secrets rotate my-env` command.
-This will recreate any all generated for the kit used by the
+This is done with the `genesis rotate-secrets my-env` command.
+This will recreate all secrets generated for the kit used by the
 `my-env` deployment environment, with the exception of any secret
 that the kit marked as `fixed` and any self-signed CA
 certificates.  If you want these rotated as well, specify the

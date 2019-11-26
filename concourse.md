@@ -1,49 +1,189 @@
 ## Find Your Concourse Installation
 
-The easiest way to find out the IP address of your Concourse is to
-interrogate BOSH for the deployment VM IPs:
+The `genesis info` command will get the general information that you
+need.
 
 ```
-$ bosh -d your-concourse vms
-Using environment 'https://10.0.0.4' as client 'admin'
+$ genesis info my-env
 
-Task 5929. Done
+================================================================================
 
-Deployment 'your-concourse'
+CONCOURSE Deployment for Environment 'my-env'
 
-Instance                                      Process State  AZ  IPs        VM CID                                   VM Type
-db/99da7876-bbb6-45ba-a3f2-c47773bbaa8d       running        z1  10.0.2.0   vm-29139deb-7f04-4829-ade9-5cc650ea6557  small
-haproxy/257059b8-f995-4725-b494-32d22adf0fcc  running        z1  10.0.2.2   vm-c0afb5b1-1972-4135-98de-1912d4285a92  small
-web/207ce2a1-65d0-4988-b62e-f7246190cdd5      running        z1  10.0.2.3   vm-73caf2a9-aac3-4635-b3e7-3fa628af415d  small
-worker/7cfecc9b-d9ab-4659-8356-84ab331e2bb4   running        z1  10.0.2.1   vm-9965eb20-c6f6-4f16-ad7c-359645b8f598  runtime
-worker/ac17d59e-d03d-43a6-be86-4258c91d146c   running        z1  10.0.2.11  vm-55badb90-26d2-4d51-8ccb-0b74d25c1cfb  runtime
-worker/e52c1b40-d893-4828-83d5-20a575a66acd   running        z1  10.0.2.12  vm-a63c96fd-311f-4896-90ca-58c153d72c38  runtime
+  Last deployed more than a month ago (06:52PM on Oct 14, 2019 UTC)
+             by you
+        to BOSH my-env
+   based on kit concourse/3.7.0
+          using Genesis v2.6.16
+  with manifest .genesis/manifests/my-env.yml (redacted)
+
+--------------------------------------------------------------------------------
+
+Web Client
+  URL:      https://10.128.80.32
+  username: concourse
+  password: ...
+
+================================================================================
+```
+
+If you have a need to see the find all the IPs in your concourse
+deployment, use bosh directly to do that. 
+
+```
+$ bosh -e my-env -d my-env-concourse vms
+Using environment 'https://10.128.80.0:25555' as user 'admin'
+
+Task 1416. Done
+
+Deployment 'my-env-concourse'
+
+Instance                                      Process State  AZ  IPs           VM CID                                   VM Type           Active
+db/537db50b-e548-4af2-b799-7c2d5d2b38aa       running        z1  10.128.80.37  vm-d0402cb0-2a6f-4c60-a400-a0aabc20d2fe  small             true
+haproxy/8cc09e62-9ac2-44cc-8594-acca42113895  running        z1  10.128.80.32  vm-b7e74ce1-50d5-4a03-9001-0b14880970c8  small             true
+web/1543f581-167b-4791-b044-ce7eea0dd3fe      running        z1  10.128.80.33  vm-876eaf63-ad86-4789-87d5-93aaae99f6ec  small             true
+worker/6dcc7c21-c976-41fd-ad5a-9c86b63a95fb   running        z1  10.128.80.35  vm-13346811-d7f0-41af-b963-4dc0bd9c2752  concourse-worker  true
+worker/a2d8882c-f649-4318-880d-e29612489a6c   running        z1  10.128.80.34  vm-71a21afa-8773-4e5a-b93c-9ff86b5b03d3  concourse-worker  true
+worker/e4d3d23b-469c-40a0-ad16-a99fa7a8e092   running        z1  10.128.80.36  vm-3b3509f3-0567-4246-8f5b-6d52105fcc51  concourse-worker  true
 
 6 vms
 
 Succeeded
 ```
 
-The `haproxy` instance is the one terminating inbound API access,
-so that's the IP we care about.
+The `haproxy` instance IP matches the Web Client URL in the `genesis info` 
+output above because `haproxy` is the one terminating inbound API access.
+If specified, the Web Client URL will be the external domain. 
 
+There are a number of helpful Genesis addons as well: 
+```
+$ genesis do my-env list
+
+Running list addon for my-env
+The following addons are defined:
+
+  visit                Open the Concourse Web User Interface in your browser
+                       (requires macOS)
+
+  download-fly         Get the version of fly compatible with this Concourse
+
+  login                Login to this Concourse deployment with fly
+
+  logout               Logout of this Concourse deployment with fly
+
+  fly                  Run fly commands targetting this Concourse Deployment
+
+  setup-approle        Create the necessary Vault AppRole and policy for Genesis
+                       Concourse deployments.
+```
+
+
+## Install `fly`, The Concourse CLI
+
+Quickest way is with the genesis addon `download-fly`.
+
+```
+genesis do my-env download-fly
+Running download-fly addon for my-env
+
+Downloading darwin/amd64 version of fly from https://10.128.80.32...
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 20.2M  100 20.2M    0     0  18.6M      0  0:00:01  0:00:01 --:--:-- 18.6M
+
+Download successful - written to ./fly
+```
+
+As you upgrade Concourse, you will also need to update your local
+copy of `fly`.  Assuming you have logged into Concourse, you can
+easily update by running `download-fly` again. 
 
 
 ## Log Into Concourse
 
-To log into concourse from _the browser_, simply open up the web
-UI (either by name, if you have DNS hooked up to the Concourse
-haproxy instance, or by IP).
+To log in from the _command-line_, you'll need to have `fly`
+installed. Then you can use the `login` addon. 
+
+```
+$ genesis do my-env login
+Running login addon for my-env
+
+Logging in to Concourse deployment my-env as user 'concourse'.
+
+logging in to team 'main'
+
+
+target saved
+```
+
+You can use this addon when your token expires as well.
+
+```
+$ fly targets
+name             url                              team   expiry
+my-env           https://10.128.80.32             main   n/a: Token is expired
+
+$ genesis do my-env login
+Running login addon for my-env
+
+Logging in to Concourse deployment my-env as user 'concourse'.
+
+logging in to team 'main'
+
+
+target saved
+
+$ fly targets
+name             url                              team   expiry
+my-env           https://10.128.80.32             main   Sat, 23 Nov 2019 19:48:30 UTC
+```
+
+You can use `fly` directly using the `-t my-env` option to specify the target 
+deployment, or use `genesis do my-env fly` to execute fly commands and genesis 
+will specify which deployment to target.
+
+```
+$ fly -t my-env status
+logged in successfully
+
+$ genesis do my-env fly status
+Running fly addon for my-env
+
+Running fly against my-env
+
+logged in successfully
+```
+
+Similarly, there is a `logout` addon as well. 
+
+```
+$ genesis do my-env logout
+Running logout addon for my-env
+
+logged out of target: my-env
+```
+
+If you are on the same machine as your browser instance (not on a jumpbox), 
+you can use the `visit` command to get to the web UI. Or you can reach it 
+directly via the Web Client URL from `info`.
+
+```
+genesis do my-env visit
+Running visit addon for my-env
+
+You will need to enter the following credentials once the page opens:
+  username: concourse
+  password: ...
+
+Press any key to open the web console...
+```
+
 
 ![Concourse Main Page](images/concourse/home-unauth.png)
-
-Then, select your Concourse team:
-
-![Concourse Teams Page](images/concourse/home-team.png)
-
-(you probably only have a `main` team).
-
-For Github authentication, click the _login with Github_ button.
+ 
+Select login. For Github authentication, click the _login with Github_
+button.
 
 ![Concourse Login with Github](images/concourse/login.png)
 
@@ -51,13 +191,25 @@ The first time you do this, you will need to authorize the Github
 endpoint to access your account information.  On subsequent
 authentication attempts, it should be seamless.
 
-To log in from the _command-line_, you'll need to have `fly`
-installed.
+
+## Login to Concourse Without Genesis
+
+If you are trying to access concourse on a machine without Genesis, or 
+give someone access to Concourse without giving them access to Genesis
+ 
+
+First thing is to install `fly`. Easiest way to get the correct version 
+of `fly` is from the Apple, Windows, or Linux buttons in the concourse UI. 
+They can be found on the bottom bar of most concourse screens (usually
+towards the right). They can also be found on the welcome screen prior 
+to login. 
+
+![Concourse Login with Github](images/concourse/fly-download.png)
 
 First, tell `fly` where your Concourse is:
 
 ```
-$ fly -t my-ci login -c https://$IP -k
+$ fly -t my-env login -c https://$IP -k
 logging in to team 'main'
 
 navigate to the following URL in your browser:
@@ -98,59 +250,13 @@ into the waiting prompt in terminal.
 Use `fly targets` to verify:
 
 ```
-fly targets
-name   url             team  expiry
-my-ci  https://.../?   main  Tue, 19 Dec 2017 17:09:18 UTC
+$ fly targets
+name             url                              team   expiry
+my-env           https://10.128.80.32             main   Sat, 23 Nov 2019 19:48:30 UTC
 ```
 
-Your real IP / domain name shoud show up in the output.
-
-From now on, all of your `fly` commands will need the `-t my-ci`
+From now on, all of your `fly` commands will need the `-t my-env`
 option, to target correctly.
-
-
-
-## Install `fly`, The Concourse CLI
-
-If you have access to a browser, you can visit the Concourse URL
-and download the correct `fly` binary for your platform, by
-clicking on one of the icons on the main page:
-
-![Concourse Main Page](images/concourse/home-unauth.png)
-
-For Linux jumpbox and bastion hosts, you can also use `curl` to
-download the Linux binary directly:
-
-```
-$ curl -Lo ~/bin/fly \
-       'https://$IP/api/v1/cli?arch=amd64&platform=linux'
-$ chmod 0755 ~/bin/fly
-```
-
-The quotes on the URL are important, to keep your shell from
-backgrounding the first part (up to the `&`) of the command.
-
-This also assumes you have a `~/bin` folder (you should) and that
-it is in your `$PATH` (it should be).  If necessary, add this to
-your `~/.bashrc`:
-
-```
-export PATH=$PATH:~/bin
-```
-
-You can verify that `fly` is working by running `fly -h`.
-
-As you upgrade Concourse, you will also need to update your local
-copy of `fly`.  Assuming you have logged into Concourse, you can
-easily update by running:
-
-```
-$ fly -t my-ci sync
-```
-
-This will contact the targeted Concourse (`my-ci`), download a new
-`fly` binary, and overwrite your locally-installed copy.
-
 
 
 ## View Your Pipelines
@@ -169,7 +275,7 @@ From the terminal (assuming you have installed `fly` and are
 logged in), you can run:
 
 ```
-$ fly -t my-ci pipelines
+$ genesis do my-env fly pipelines
 name                    paused  public
 blacksmith-genesis-kit  no      no
 bosh-genesis-kit        no      no
@@ -186,7 +292,7 @@ prometheus-genesis-kit  no      no
 You can list the jobs on a single pipeline as well:
 
 ```
-$ fly -t my-ci jobs -p concourse-genesis-kit
+$ genesis do my-env fly jobs -p concourse-genesis-kit
 name        paused  status     next
 testflight  no      succeeded  n/a
 rc          no      succeeded  n/a
@@ -208,7 +314,7 @@ To list off all of the workers that have registered with your
 Concourse TSA, and their health, use `fly workers`:
 
 ```
-$ fly -t my-ci workers
+$ genesis do my-env fly workers
 name                                  containers  platform  tags  team  state    version
 7cfecc9b-e0cd-4f8d-b771-6c26b8782de3  6           linux     none  none  running  1.2
 ac17d59e-e92e-4304-a09e-9a5356996296  19          linux     none  none  running  1.2
@@ -224,7 +330,7 @@ concourse into _zones_ for purposes of deployment scheduling.
 
 ## Trigger Pipeline Jobs
 
-From the browser, you can click on the big `+` icon on any job to
+From the browser, you can select a job and click on the big `+` icon on any job to
 force it to run right now:
 
 ![Concourse Trigger Button](images/concourse/trigger.png)
@@ -235,14 +341,14 @@ and you are already logged in).
 First, find the pipeline, and inspect its jobs:
 
 ```
-$ fly -t my-ci pipelines
-$ fly -t my-ci jobs -p my-pipeline
+$ genesis do my-env fly pipelines
+$ genesis do my-env fly jobs -p my-pipeline
 ```
 
 Then, trigger the pipeline/job:
 
 ```
-$ fly -t my-ci trigger -j my-pipeline/my-job
+$ genesis do my-env fly trigger -j my-pipeline/my-job
 ```
 
 
@@ -254,24 +360,26 @@ sure Concourse isn't building software or doing deployments in a
 chagne blackout window.
 
 You can pause a pipeline from the web UI by clicking on the
-&#x23f8; icon next to the pipeline name in the sidebar.  Paused
+&#x23f8; icon in the top right next to your user:
+
+![Concourse Paused Pipeline](images/concourse/unpaused.png)
+
+To unpause, click the &#x25b6; icon in the same location. Paused
 pipelines show up with a blue header in the web UI:
 
 ![Concourse Paused Pipeline](images/concourse/paused.png)
-
-To unpause, click the &#x25b6; icon in the sidebar.
 
 To pause a pipeline from the command-line, you will need to
 install `fly` and make sure you are logged in.
 
 ```
-$ fly -t my-ci pause-pipeline -p my-pipeline
+$ genesis do my-env fly pause-pipeline -p my-pipeline
 ```
 
 To unpause:
 
 ```
-$ fly -t my-ci unpause-pipeline -p my-pipeline
+$ genesis do my-env fly unpause-pipeline -p my-pipeline
 ```
 
 Note: Genesis always unpauses its pipelines after you repipe them.
@@ -292,14 +400,14 @@ debugging.  Successful containers are destroyed immediately.
 Start by finding the job you are interested in:
 
 ```
-$ fly -t my-ci pipelines
-$ fly -t my-ci jobs -p m-pipeline
+$ genesis do my-env fly pipelines
+$ genesis do my-env fly jobs -p m-pipeline
 ```
 
 Then, specify the pipeline/job in a call to `fly hijack`:
 
 ```
-$ fly -t my-ci hijack -j my-pipeline/testflight
+$ genesis do my-env fly hijack -j my-pipeline/testflight
 1: build #51, step: git, type: get
 2: build #51, step: notify, type: get
 3: build #51, step: notify, type: put
@@ -352,8 +460,8 @@ pipeline, especially with deployment pipelines that seem to run for no
 apparent reason.
 
 Concourse does give you a visual cue, but you have to know to look for it,
-and what it is.  Any input that triggers a job will have a lighter
-background than the others.  It's subtle, but useful.
+and what it is.  Any input that triggers a job will have a yellow/gold down
+arrow as opposed to a white down arrow. 
 
 ![Concourse Triggering Input](images/concourse/what-triggered.png)
 
@@ -369,7 +477,7 @@ Concourse has a complete manifest that it uses to run your
 pipeline.  You can use `fly` to retrieve this manifest.
 
 ```
-$ fly -t ci get-pipeline -p name-of-pipeline
+$ genesis do my-env fly get-pipeline -p name-of-pipeline
 ```
 
 This will dump a (probably very large) YAML document, to standard
@@ -381,10 +489,19 @@ To create a new pipeline, assuming you have already written the
 YAML definition file (the "manifest"), all you need to do is:
 
 ```
-$ fly -t ci set-pipeline -p name-of-pipeline path/to/def.yml
+$ genesis do my-env fly set-pipeline -p name-of-pipeline path/to/def.yml
 ```
 
 Note: for Genesis deployments, you should refer to the Genesis
 runbooks, since `genesis` actually manages the pipeline
 definition, and has first-class support for configuring Concourse
 on your behalf.
+
+## Setup Vault Approle for Genesis
+
+If you wish to use the pipeline features of genesis, you first need to create
+an approle within vault. The easiest way to do this is by running: 
+
+```
+$ genesis do my-env setup-approle
+```

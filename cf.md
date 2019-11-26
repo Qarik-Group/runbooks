@@ -30,41 +30,30 @@ $ brew install cf
 
 ## Log into Cloud Foundry
 
-Before you can interact with Cloud Foundry from the command-line,
-you need to set your CF API endpoint, and then authenticate:
+Before you can interact with Cloud Foundry from the command-line.
 
+This is done via the `login` Genesis kit addon:
 ```
-$ cf api https://api.system.cf.example.com
+$ genesis do my-env login
+Running login addon for my-env
+Setting api endpoint to https://api.system.10.128.80.140.netip.cc...
 OK
 
-api endpoint:   https://api.system.cf.example.com
-api version:    2.105.0
-
-$ cf login
-API endpoint: https://api.system.cf.example.com
-
-Email> admin
-Password>
+api endpoint:   https://api.system.10.128.80.140.netip.cc
+api version:    2.138.0
+API endpoint: https://api.system.10.128.80.140.netip.cc
 Authenticating...
 OK
 
-API endpoint:   https://api.system.cf.example.com (API version: 2.106.0)
-User:           admin
-Org:            system
-Space:          system
+Use 'cf target' to view or set your target org and space.
+Saved current target as my-env
+
+
+api endpoint:   https://api.system.10.128.80.140.netip.cc
+api version:    2.138.0
+user:           admin
+No org or space targeted, use 'cf target -o ORG -s SPACE'
 ```
-
-If you ever need to re-authenticate, you can skip the `cf api`
-step and go straight to `cf login`.
-
-You can also use `cf auth`, which is non-interactive:
-
-```
-$ cf auth admin $(safe read secret/path/to/cf/admin_user:password)
-```
-
-Which leverages `safe` to pull the admin credentials for you.
-
 
 
 ## Manage Multiple Cloud Foundries with One CLI
@@ -79,11 +68,13 @@ You can set your `CF_HOME` environment variable to isolate these
 separate authentication contexts, but there's a better way!
 
 The _Targets_ plugin adds a new `cf set-target` command that
-manages this complexity for you.  To install:
+manages this complexity for you.  
 
+To install with Genesis:
 ```
-$ cf add-plugin-repo CF-Community https://plugins.cloudfoundry.org/
-$ cf install-plugin Targets -r CF-Community
+$ genesis do my-env setup-cli
+Running setup-cli addon for my-env
+ ...
 ```
 
 (You will have to do this on every jumpbox you use)
@@ -1137,4 +1128,13 @@ instance_groups:
               key:         (( vault secret/your-cf-env-vault-path/uaa/certs/server:key ))
               certificate: (( vault secret/your-cf-env-vault-path/uaa/certs/server:certificate ))
               passphrase: ""
+```
+
+## Bind Autoscaler to Genesis deplyed CF
+
+If the `autoscaler` feature was enabled in the kit at deployment, then you can
+bind easily with:
+
+```
+$ genesis do my-env bind-autoscaler
 ```
