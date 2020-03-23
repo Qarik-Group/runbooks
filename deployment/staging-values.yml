@@ -1,7 +1,7 @@
 ingress:
   hosts:
-    - runbooks-staging.starkandwayne.com
-    - runbooks-staging.k8s.lke.starkandwayne.com
+    - staging.runbooks.starkandwayne.com
+    - staging.runbooks.k8s.lke.starkandwayne.com
   tls:
     enabled: true
     certIssuer: "lab-ca-issuer"
