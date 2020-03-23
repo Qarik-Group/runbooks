@@ -9,7 +9,6 @@ ingress:
 app:
   org: starkandwayne
   repo: runbooks
-  commitSHA: "e3bcdff"
 
   setup_script: |
     #!/bin/sh
