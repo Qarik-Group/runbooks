@@ -1,0 +1,17 @@
+ingress:
+  hosts:
+    - runbooks.starkandwayne.com
+    - runbooks.k8s.lke.starkandwayne.com
+  tls:
+    enabled: true
+    certIssuer: "lab-ca-issuer"
+
+app:
+  org: starkandwayne
+  repo: runbooks
+  commitSHA: "e3bcdff"
+
+  setup_script: |
+    #!/bin/sh
+    mv /tmp/website/web/* /var/www/
+    
