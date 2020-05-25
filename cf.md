@@ -837,9 +837,14 @@ that need to be preserved:
 
   1. The Cloud Controller Database
   2. The UAA Database
-  3. The Blobstore
+  3. The Diego Database
+  4. The CF Networking Database
+  5. The Locket Database
+  6. The Routing Database
+  7. The Autoscaler Database if you have autoscaler enabled with CF deployment
+  8. The Blobstore
 
-The first two are required.  The third is highly recommended, but can be
+The first seven are required.  The third is highly recommended, but can be
 omitted from a backup strategy if space is at a premium.  If you do skip
 the blobstore, your users will have to re-push all of their applications in
 the event of data-loss.
@@ -1130,7 +1135,7 @@ instance_groups:
               passphrase: ""
 ```
 
-## Bind Autoscaler to Genesis deplyed CF
+## Bind Autoscaler to Genesis deployed CF
 
 If the `autoscaler` feature was enabled in the kit at deployment, then you can
 bind easily with:

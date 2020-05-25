@@ -42,33 +42,28 @@ following options:</p>
 $ brew install cf
 </code></pre>
 <h2>Log into Cloud Foundry</h2>
-<p>Before you can interact with Cloud Foundry from the command-line,
-you need to set your CF API endpoint, and then authenticate:</p>
-<pre><code>$ cf api https://api.system.cf.example.com
+<p>Before you can interact with Cloud Foundry from the command-line.</p>
+<p>This is done via the <code>login</code> Genesis kit addon:</p>
+<pre><code>$ genesis do my-env login
+Running login addon for my-env
+Setting api endpoint to https://api.system.10.128.80.140.netip.cc...
 OK
 
-api endpoint:   https://api.system.cf.example.com
-api version:    2.105.0
-
-$ cf login
-API endpoint: https://api.system.cf.example.com
-
-Email&gt; admin
-Password&gt;
+api endpoint:   https://api.system.10.128.80.140.netip.cc
+api version:    2.138.0
+API endpoint: https://api.system.10.128.80.140.netip.cc
 Authenticating...
 OK
 
-API endpoint:   https://api.system.cf.example.com (API version: 2.106.0)
-User:           admin
-Org:            system
-Space:          system
+Use 'cf target' to view or set your target org and space.
+Saved current target as my-env
+
+
+api endpoint:   https://api.system.10.128.80.140.netip.cc
+api version:    2.138.0
+user:           admin
+No org or space targeted, use 'cf target -o ORG -s SPACE'
 </code></pre>
-<p>If you ever need to re-authenticate, you can skip the <code>cf api</code>
-step and go straight to <code>cf login</code>.</p>
-<p>You can also use <code>cf auth</code>, which is non-interactive:</p>
-<pre><code>$ cf auth admin $(safe read secret/path/to/cf/admin_user:password)
-</code></pre>
-<p>Which leverages <code>safe</code> to pull the admin credentials for you.</p>
 <h2>Manage Multiple Cloud Foundries with One CLI</h2>
 <p>By itself, the <code>cf</code> command-line interface can only handle one
 targeted Cloud Foundry API endpoint at a time.  If you need to
@@ -78,9 +73,11 @@ in every time you switch.</p>
 <p>You can set your <code>CF_HOME</code> environment variable to isolate these
 separate authentication contexts, but there’s a better way!</p>
 <p>The <em>Targets</em> plugin adds a new <code>cf set-target</code> command that
-manages this complexity for you.  To install:</p>
-<pre><code>$ cf add-plugin-repo CF-Community https://plugins.cloudfoundry.org/
-$ cf install-plugin Targets -r CF-Community
+manages this complexity for you.</p>
+<p>To install with Genesis:</p>
+<pre><code>$ genesis do my-env setup-cli
+Running setup-cli addon for my-env
+ ...
 </code></pre>
 <p>(You will have to do this on every jumpbox you use)</p>
 <p>Then, when you want to target a new Cloud Foundry instance:</p>
@@ -581,9 +578,14 @@ that need to be preserved:</p>
 <ol>
 <li>The Cloud Controller Database</li>
 <li>The UAA Database</li>
+<li>The Diego Database</li>
+<li>The CF Networking Database</li>
+<li>The Locket Database</li>
+<li>The Routing Database</li>
+<li>The Autoscaler Database if you have autoscaler enabled with CF deployment</li>
 <li>The Blobstore</li>
 </ol>
-<p>The first two are required.  The third is highly recommended, but can be
+<p>The first seven are required.  The third is highly recommended, but can be
 omitted from a backup strategy if space is at a premium.  If you do skip
 the blobstore, your users will have to re-push all of their applications in
 the event of data-loss.</p>
@@ -788,6 +790,11 @@ example to start from:</p>
               key:         (( vault secret/your-cf-env-vault-path/uaa/certs/server:key ))
               certificate: (( vault secret/your-cf-env-vault-path/uaa/certs/server:certificate ))
               passphrase: &quot;&quot;
+</code></pre>
+<h2>Bind Autoscaler to Genesis deployed CF</h2>
+<p>If the <code>autoscaler</code> feature was enabled in the kit at deployment, then you can
+bind easily with:</p>
+<pre><code>$ genesis do my-env bind-autoscaler
 </code></pre>
 
   </div>
