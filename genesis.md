@@ -365,12 +365,14 @@ certificates.  If you want these rotated as well, specify the
 
 ## Change Where Genesis Stores Secrets
 
-All Genesis environments store their secrets under a predictable
-path.  Under the base `secret/` , the environment is split on
-dashes (`-`) and joined by slashes (`/`), then the deployment type
-is added to the end.  For example, for a environment named
-`myorg-site-prod.yml` deployment using the
-`cf-rabbitmq-genesis-kit`, the path would be
+If you would like to check or set the secets provider, you can run 
+`genesis secrets-provider`/`genesis secrets-provider name`.
+
+In the secret provider Vault, all Genesis environments store their secrets
+under a predictable path.  Under the base `secret/` , the environment is 
+split on dashes (`-`) and joined by slashes (`/`), then the deployment type
+is added to the end.  For example, for a environment named `myorg-site-prod.yml`
+deployment using the `cf-rabbitmq-genesis-kit`, the path would be
 `secret/myorg/site/prod/cf-rabbitmq`. Notice that any dashes in
 the deployment type are **not** converted to slashes.
 
