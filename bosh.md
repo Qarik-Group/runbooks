@@ -206,6 +206,7 @@ Whatever the reason, the `upload-stemcell` and `upload-release`
 commands sport a `--fix` flag for just this situation:
 
 ```
+$ genesis do my-env upload-stemcells --fix
 $ bosh upload-stemcell --fix path/to/stemcell.tgz
 $ bosh upload-release  --fix path/to/release.tgz
 ```
@@ -590,17 +591,17 @@ troubleshooting at the network and work your way back to the BOSH
 director.
 
 As a last resort, you can have BOSH forcibly recreate the
-instances via the `bosh recreate` command:
+instances via the `bosh recreate` command with `--fix`, it will 
+recreate an instance with an unresponsive agent instead of erroring.
+
 
 ```
-$ bosh -d vault recreate
+$ bosh -d vault recreate --fix
 ```
 
 This will detach any persistent disks (so that they survive),
 delete the running virtual machine instances, and bring up new
-copies.
-
-
+copies. 
 
 ## Cancel a BOSH Task
 

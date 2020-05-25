@@ -29,57 +29,60 @@ visit <a href="https://ultimateguidetobosh.com">Ultimate Guide to BOSH</a>, or t
 documentation</a>.</p>
 <h2>Log Into Your Director</h2>
 <p>Before you can run any BOSH commands, you should set up an alias for it, in
-your local configuration, and authenticate.  This is done via the <code>bosh alias-env</code> command:</p>
-<pre><code>$ bosh alias-env your-env \
-    -e https://bosh-ip:25555 \
-    --ca-cert &lt;(safe get secret/your/env/bosh/ssl/ca:certificate)
+your local configuration, and authenticate.</p>
+<p>Via Genesis, this is done with the <code>alias</code> addon:</p>
+<pre><code>$ genesis do my-env alias
+Running alias addon for my-env
+Using environment 'https://10.128.80.0:25555' as user 'admin'
 
-Using environment 'https://10.200.130.1' as anonymous user
-
-Name      your-env
-UUID      9d22659b-a582-411c-a6d4-2ccc24211d4c
-Version   263.2.0 (00000000)
-CPI       vsphere_cpi
-Features  compiled_package_cache: disabled
-          config_server: disabled
-          dns: disabled
-          snapshots: disabled
-User      (not logged in)
+Name               my-env-bosh
+UUID               1f7de7f1-bb35-4b12-9f2a-556c1dd77958
+Version            269.0.1 (00000000)
+Director Stemcell  ubuntu-xenial/315.34
+CPI                vsphere_cpi
+Features           compiled_package_cache: disabled
+                   config_server: enabled
+                   local_dns: enabled
+                   power_dns: disabled
+                   snapshots: disabled
 
 Succeeded
 </code></pre>
-<p>Future BOSH commands will only need to specify <code>-e your-env</code> to target this
-BOSH director, instead of having to specify the full URL and certificate
-authority certificate.</p>
-<p>Since we are still <em>anonymous</em>, let’s go ahead and log in:</p>
-<pre><code>$ bosh -e your-env login
-Username (): admin
+<p>Creating this alias allows future BOSH commands to only need to specify
+<code>-e my-env</code> to target this BOSH director, instead of having to specify
+the full URL and certificate authority certificate.</p>
+<p>Now that we have an alias, we can similarly use the <code>login</code> addon to login:</p>
+<pre><code>$ genesis do my-env login
+Running login addon for my-env
+Logging you in as user 'admin'...
+Using environment 'https://10.128.80.0:25555'
+
+Email (): admin
 Password ():
 
-Using environment 'https://10.200.130.1' as client 'admin'
-
-Logged in to 'https://10.200.130.1'
+Successfully authenticated with UAA
 
 Succeeded
 </code></pre>
 <p>You can use the <code>bosh env</code> command to verify that you are logged in:</p>
-<pre><code>$ bosh -e your-env env
+<pre><code>$ bosh -e my-env env
+Using environment 'https://10.128.80.0:25555' as user 'admin'
 
-Using environment 'https://10.200.130.1' as client 'admin'
-
-Name      your-bosh
-UUID      9d22659b-a582-411c-a6d4-2ccc24211d4c
-Version   263.2.0 (00000000)
-CPI       vsphere_cpi
-Features  compiled_package_cache: disabled
-          config_server: disabled
-          dns: disabled
-          snapshots: disabled
-User      admin
+Name               my-env-bosh
+UUID               1f7de7f1-bb35-4b12-9f2a-556c1dd77958
+Version            269.0.1 (00000000)
+Director Stemcell  ubuntu-xenial/315.34
+CPI                vsphere_cpi
+Features           compiled_package_cache: disabled
+                   config_server: enabled
+                   local_dns: enabled
+                   power_dns: disabled
+                   snapshots: disabled
+User               (not logged in)
 
 Succeeded
 </code></pre>
-<p>You only need to <code>bosh login</code> for interactive (i.e. jumpbox) use.  For
+<p>You only need to <code>login</code> for interactive (i.e. jumpbox) use.  For
 automated scripts, you can set the <code>BOSH_CLIENT_ID</code> and <code>BOSH_CLIENT_SECRET</code>
 environment variables to <code>admin</code> and the password:</p>
 <pre><code>$ export BOSH_CLIENT_ID=admin
@@ -131,13 +134,20 @@ called <em>Stemcells</em>, because they can specialize into whatever VM
 type you need through BOSH releases.  Each Cloud / IaaS has its
 own set of Stemcells that are tailored to its peculiarities.</p>
 <p>Before you can deploy anything, you will need to upload a
-stemcell for your platform:</p>
+stemcell for your platform.</p>
+<p>Genesis has an interactive addon for this as well:</p>
+<pre><code>$ genesis do my-env upload-stemcells
+Running upload-stemcells addon for my-env
+
+Select the release family for the vsphere-esxi ubuntu-xenial stemcell you wish to upload:
+ ...
+</code></pre>
+<p>Or to upload manually, or a stemcell not supplied in the kit:</p>
 <pre><code>$ bosh upload-stemcell path/to/stemcell.tgz
 </code></pre>
 <p>or, specify a remote URL:</p>
 <pre><code>$ bosh upload-stemcell https://some-host/path/to/stemcell.tgz
 </code></pre>
-<p>Genesis Kits do not upload stemcells.</p>
 <p>To see what stemcells have already been uploaded:</p>
 <pre><code>$ bosh stemcells
 
@@ -164,7 +174,8 @@ and you uploaded a corrupt copy.  Perhaps the BOSH director ran
 out of disk space and only partially processed the file upload.</p>
 <p>Whatever the reason, the <code>upload-stemcell</code> and <code>upload-release</code>
 commands sport a <code>--fix</code> flag for just this situation:</p>
-<pre><code>$ bosh upload-stemcell --fix path/to/stemcell.tgz
+<pre><code>$ genesis do my-env upload-stemcells --fix
+$ bosh upload-stemcell --fix path/to/stemcell.tgz
 $ bosh upload-release  --fix path/to/release.tgz
 </code></pre>
 <h2>Clean Up a BOSH Director</h2>
@@ -226,6 +237,11 @@ releases:
     version: 3.4.2
     url:     https://github.com/cloudfoundry-community/toolbelt-boshrelease/releases/download/v3.4.2/toolbelt-3.4.2.tgz
     sha1:    2b4debac0ce6115f8b265ac21b196dda206e93ed
+</code></pre>
+<p>Genesis has an interactive addon to help generate the runtime-config:</p>
+<pre><code>$ genesis do my-env runtime-config
+Running runtime-config addon for my-env
+ ...
 </code></pre>
 <p>You can get the current <code>runtime-config</code> like this:</p>
 <pre><code>$ bosh runtime-config
@@ -412,8 +428,9 @@ misconfigured firewall, etc.  In these cases, start
 troubleshooting at the network and work your way back to the BOSH
 director.</p>
 <p>As a last resort, you can have BOSH forcibly recreate the
-instances via the <code>bosh recreate</code> command:</p>
-<pre><code>$ bosh -d vault recreate
+instances via the <code>bosh recreate</code> command with <code>--fix</code>, it will
+recreate an instance with an unresponsive agent instead of erroring.</p>
+<pre><code>$ bosh -d vault recreate --fix
 </code></pre>
 <p>This will detach any persistent disks (so that they survive),
 delete the running virtual machine instances, and bring up new
