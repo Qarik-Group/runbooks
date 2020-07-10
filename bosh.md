@@ -659,4 +659,38 @@ to include it in the runbook.  A full write-up can be found on the
   3. Re-upload / Fix Stemcells
   4. Assign AZs as appropriate
 
+
+## Backup BOSH Director
+
+We recommend that you backup the database on the BOSH director. We have a tool
+called [shield][shield] to help you backup your BOSH director and more.
+This runbook also has a section on [shield][runbook-shield] to help you get 
+started with shield.
+
+Since BOSH only allows you to access the database from the director itself, 
+you have to collocate the shield agent on the bosh director itself.
+
+If your BOSH is deployed by another BOSH, you can add shield agent through
+runtime config; if your BOSH is deployed through bosh create-env, you can
+add the shield agent on the jobs' config in the manifest.
+
+
+We do not recommend you to backup BOSH blobstore unless you:
+1) Have the fear of being unable to find uploaded stemcells and/or releases;
+2) You have time restrictions on MTTR from smoking hole recovery that make
+compiling packages for all deployments untenable.
+
+Shield has a local file plugin which can be used to backup the local dav blobstore.
+However, since you will have your database backup separately and there is
+no locking during the backup process, you cannot guarantee that the database and 
+blobstore backup are in a consistent state.
+ 
+Shield also has a bbr plugin which you can use to backup both the database,
+Credhub, UAA and blobstore of the BOSH director. Please be aware during backup
+process, the Credhub and UAA will be locked and read-only.
+It can take hours to run the backup depending on the size of your BOSH blobstore.
+
+
 [cpi-blog]: https://www.starkandwayne.com/blog/multi-cpi-bosh-one-bosh-to-rule-them-all
+[shield]: https://shieldproject.io/
+[runbook-shield]: http://runbooks.starkandwayne.com/shield.html
