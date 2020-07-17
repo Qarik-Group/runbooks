@@ -1,4 +1,4 @@
-Vault is a secure secret store by Hashicorp.  Safe is a CLI for
+ault is a secure secret store by Hashicorp.  Safe is a CLI for
 Vault that is more user-friendly and powerful than the native
 Vault CLI.  For more information, refer to the [Vault
 documentation][vault-docs] and the [Safe guide][safe-docs].
@@ -208,6 +208,9 @@ $ cat secrets.json | \
     safe import
 ```
 
+You can also backup your credentials in Vault using [shield][shield]. Shield has a
+plugin for Vault which you can use to backup and restore Vault. The web UI is pretty
+straitforward to follow. You can also get more details [here][runbook-shield].
 
 
 ## Copy Secrets to a Different Vault
@@ -382,3 +385,6 @@ The `safe seal`, `safe unseal` and `safe status` commands require
 a Genesis-deployed Vault to function.  You can use `safe` with
 other types of Vault deployments, but you will have to use other
 `safe vault ...` commands instead.
+
+[shield]: https://shieldproject.io/
+[runbook-shield]: http://runbooks.starkandwayne.com/shield.html

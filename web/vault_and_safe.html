@@ -23,7 +23,7 @@
   </header>
 
   <div id="m">
-    <p>Vault is a secure secret store by Hashicorp.  Safe is a CLI for
+    <p>ault is a secure secret store by Hashicorp.  Safe is a CLI for
 Vault that is more user-friendly and powerful than the native
 Vault CLI.  For more information, refer to the <a href="https://www.vaultproject.io/docs/concepts">Vault
 documentation</a> and the <a href="https://github.com/starkandwayne/safe/blob/master/README.md">Safe guide</a>.</p>
@@ -160,6 +160,9 @@ the json and manually change the path, or use <code>jq</code>:</p>
     jq -Mc &quot;.secret.your.prod.bosh | {'secret': {'your': {'staging': {'bosh': .}}}}&quot; | \
     safe import
 </code></pre>
+<p>You can also backup your credentials in Vault using <a href="https://shieldproject.io/">shield</a>. Shield has a
+plugin for Vault which you can use to backup and restore Vault. The web UI is pretty
+straitforward to follow. You can also get more details <a href="http://runbooks.starkandwayne.com/shield.html">here</a>.</p>
 <h2>Copy Secrets to a Different Vault</h2>
 <p>You can use <code>export</code> + <code>import</code> to copy secrets form one targeted
 Vault to another:</p>
