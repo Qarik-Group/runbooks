@@ -1,4 +1,4 @@
-ault is a secure secret store by Hashicorp.  Safe is a CLI for
+Vault is a secure secret store by Hashicorp.  Safe is a CLI for
 Vault that is more user-friendly and powerful than the native
 Vault CLI.  For more information, refer to the [Vault
 documentation][vault-docs] and the [Safe guide][safe-docs].
