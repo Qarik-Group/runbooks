@@ -31,65 +31,125 @@ box all to themselves, Blacksmith will do so.</p>
 <p>The <em>magic</em> of Blacksmith is accomplished by way of <em>Forges</em>,
 small bits of configuration, packaged up as a BOSH release, that
 can be added into a Blacksmith deployment.</p>
-<p>The Blacksmith Genesis Kit packages three forges at the moment:</p>
+<p>The Blacksmith Genesis Kit packages five forges at the moment:</p>
 <ol>
 <li><a href="https://github.com/blacksmith-community/redis-forge-boshrelease">Redis</a></li>
 <li><a href="https://github.com/blacksmith-community/rabbitmq-forge-boshrelease">RabbitMQ</a></li>
 <li><a href="https://github.com/blacksmith-community/postgresql-forge-boshrelease">PostgreSQL</a></li>
+<li><a href="https://github.com/blacksmith-community/mariadb-forge-boshrelease">MariaDB</a></li>
+<li><a href="https://github.com/blacksmith-community/kubernetes-forge-boshrelease">Kubernetes</a></li>
 </ol>
 <p>Refer to their specific project pages for more details information
 on their features and configuration.</p>
 <p>The <a href="https://github.com/genesis-community/blacksmith-genesis-kit">Blacksmith Kit documentation</a> explains how to
 configure each of these Forges and their service offerings.</p>
-<h2>Determine the IP address of your Blacksmith Broker</h2>
-<p>You can get this from BOSH itself:</p>
-<pre><code>$ bosh -d your-blacksmith vms
-Using environment 'https://10.0.0.4' as client 'admin'
+<h2>Get information about your Blacksmith</h2>
+<p>If deployed with Genesis, <code>genesis info my-env</code> will dump most of the relevant
+information for the deployment. This includes general env and deployment
+information, URLs and creds for the bosh director and UI, and the
+catalog of services.</p>
+<pre><code>genesis info my-env
 
-Task 5923. Done
+================================================================================
 
-Deployment 'your-blacksmith'
+BLACKSMITH Deployment for Environment 'my-env'
 
-Instance                                         Process State  AZ  IPs       VM CID                                   VM Type
-blacksmith/5600d462-f8c8-4a85-ae7b-2028ae4ffafe  running        z1  10.5.6.7  vm-0e68f44e-a768-418a-9c97-3c1d489ae000  blacksmith
+  Last deployed about a week and a half ago (10:04PM on Oct 25, 2019 UTC)
+             by admin
+        to BOSH my-env
+   based on kit blacksmith/0.5.0
+          using Genesis v2.6.16
+  with manifest .genesis/manifests/my-env.yml (redacted)
 
-1 vms
+--------------------------------------------------------------------------------
 
-Succeeded
+ca certificate
+ ...
+
+
+bosh env
+  Using environment 'https://10.128.80.129:25555' as client 'admin'
+
+  Name               my-env-blacksmith
+  UUID               e33feb30-0e9d-4461-906e-18239abba00c
+  Version            270.2.0 (00000000)
+  Director Stemcell  ubuntu-xenial/315.36
+  CPI                vsphere_cpi
+  Features           compiled_package_cache: disabled
+                     config_server: disabled
+                     local_dns: enabled
+                     power_dns: disabled
+                     snapshots: disabled
+  User               admin
+
+  Succeeded
+
+
+blacksmith (internal) bosh director
+  bosh url: https://10.128.80.129:25555
+  username: admin
+  password: ...
+
+
+blacksmith web management UI
+  web url:   http://10.128.80.129:3000
+  username:  blacksmith
+  password:  ...
+  clickable: ...
+
+
+blacksmith catalog
+  Service     Plans          Tags
+  =======     =====          ====
+  mariadb     standalone     blacksmith
+                             dedicated
+                             mariadb
+
+  postgresql  small-cluster  blacksmith
+              standalone     dedicated
+                             postgresql
+
+  rabbitmq    small-cluster  blacksmith
+              standalone     dedicated
+                             rabbitmq
+
+  redis       standalone     blacksmith
+                             dedicated
+                             redis
+
+
+================================================================================
 </code></pre>
-<p>Blacksmith runs on port <code>3000</code> by default, so the URL of this
-particular Blacksmith is <code>http://10.5.6.7:3000</code>.</p>
 <h2>Register a Blacksmith Broker</h2>
 <p>Before your Cloud Foundry users can start provisioning services
 via your new Blacksmith, it has to be registered with Cloud
 Foundry, and enabled in the CF marketplace.</p>
-<p>To register the broker, you’ll need its IP address (see
-<em>Determining the IP address of your Blacksmith Broker</em>).</p>
-<pre><code>$ cf create-service-broker \
-     your-env-name-blacksmith \
-     blacksmith \
-     $(safe read secret/your/env/name/blacksmith/broker:password)
-     http://$IP:3000
+<p>The <code>register</code> Genesis kit addon makes this easy.</p>
+<pre><code>$ genesis do my-env register
+Running register addon for my-env
+authenticating to https://api.system.10.128.80.140.netip.cc as admin...
+Setting api endpoint to https://api.system.10.128.80.140.netip.cc...
+OK
+
+api endpoint:   https://api.system.10.128.80.140.netip.cc
+api version:    2.138.0
+Not logged in. Use 'cf login' to log in.
+API endpoint: https://api.system.10.128.80.140.netip.cc
+Authenticating...
+OK
+
+Use 'cf target' to view or set your target org and space.
+creating service broker my-env-blacksmith...
+Creating service broker my-env-blacksmith as admin...
+OK
+
+enabling service access...
+ ...
 </code></pre>
-<p>The first argument is the name of your broker.  If you have
-multiple Blacksmith brokers, you will want to choose appropriate
-names to distinguish them.</p>
-<p>The second argument is the HTTP username for accessing the broker
-API.  This is always <code>blacksmith</code>.</p>
-<p>The third argument is the password for the HTTP <code>blacksmith</code> user.
-This is stored in the Vault, and the <code>$(safe ...)</code> call in the
-listing will extract it for you.</p>
-<p>The final argument is the URL of the broker API, which depends on
-the IP of the broker.  The port is always 3000.</p>
 <p>You can verify that the broker is registered, by checking that it
 is listed in the output of <code>cf service-brokers</code></p>
 <p>For more details, refer to <a href="https://docs.cloudfoundry.org/services/managing-service-brokers.html">Managing Service Brokers</a>, in
 the official Cloud Foundry documentation.</p>
-<p>Next, you’ll need to enable access to the Blacksmith broker’s
-services and plans, so that Cloud Foundry users will see them in
-the marketplace:</p>
-<pre><code>$ cf enable-service-access your-env-name-blacksmith
-</code></pre>
 <p>This makes all the plans and services owned by the
 <code>your-env-name-blacksmith</code> broker available to all orgs and spaces
 in your Cloud Foundry instance.  If you need stricter permissions,
@@ -101,31 +161,16 @@ you defined in your Blacksmith manifests.</p>
 <h2>Access the Blacksmith Management UI</h2>
 <p>The Blacksmith Management Web UI provides an overview of what is
 going on with a single Blacksmith Services Broker.</p>
-<p>To access it, you’ll need to know the service broker VM IP
-address, which you can get from BOSH itself:</p>
-<pre><code>$ bosh -d your-blacksmith vms
-Using environment 'https://10.0.0.4' as client 'admin'
-
-Task 5923. Done
-
-Deployment 'your-blacksmith'
-
-Instance                                         Process State  AZ  IPs       VM CID                                   VM Type
-blacksmith/5600d462-f8c8-4a85-ae7b-2028ae4ffafe  running        z1  10.5.6.7  vm-0e68f44e-a768-418a-9c97-3c1d489ae000  blacksmith
-
-1 vms
-
-Succeeded
+<p>You can get the UI by using the <code>visit</code> addon</p>
+<pre><code>$ genesis do my-env visit
+Running visit addon for my-env
 </code></pre>
-<p>Blacksmith runs on port <code>3000</code> by default, so you can open a
-browser to <code>http://10.5.6.7:3000</code>.</p>
-<p>All of Blacksmith is protected by HTTP basic authentication.  The
-username is always <code>blacksmith</code>, and the password can be found in
+<p>The <code>visit</code> addon will perform auth for you. If for any reason, you need to
+auth manually, all of Blacksmith is protected by HTTP basic authentication.<br>
+The username is always <code>blacksmith</code>, and the password can be found in
 your Vault:</p>
-<pre><code>$ safe read secret/$ENV/blacksmith/broker:password
+<pre><code>$ safe read secret/my/env/blacksmith/broker:password
 </code></pre>
-<p>(replacing <code>$ENV</code> with your actually environment prefix, something
-like <code>us/east/2/prod</code> for <code>us-east-2-prod</code>).</p>
 <p>The UI lists the current catalog:</p>
 <p><img src="images/services/catalog.png" alt="Catalog Listing"></p>
 <p>It also lists all deployed instances:</p>
@@ -133,30 +178,6 @@ like <code>us/east/2/prod</code> for <code>us-east-2-prod</code>).</p>
 <p>Finally, the last 8,000 (or so) log lines are buffered and printed
 to the <em>Log</em> section:</p>
 <p><img src="images/services/logs.png" alt="Blacksmith Logs"></p>
-<h2>Install <code>eden</code></h2>
-<p><a href="https://github.com/starkandwayne/eden">eden</a> is a command-line utility for interacting with Open
-Service Broker API implementations.  All Cloud Foundry service
-brokers conform to OSB, so <code>eden</code> works with Blacksmith.</p>
-<p>On Mac OS, if you use <a href="https://brew.sh">Homebrew</a>, you can <code>brew install eden</code> and you’re done.</p>
-<p>On Ubuntu Linux, you can add the <a href="http://apt.starkandwayne.com">Stark &amp; Wayne APT
-repository</a> and just <code>apt install eden</code>.</p>
-<p>On all other platforms, you can check out the <a href="https://github.com/starkandwayne/eden/releases">Eden Github
-Releases page</a> to see if there is a pre-built
-binary for you.</p>
-<h2>Configure <code>eden</code> To Work With Your Blacksmith</h2>
-<p>The <code>eden</code> utility needs to know the URL of the Blacksmith broker,
-as well as the username and password for accessing it.  These
-should be set in the <code>SB_BROKER_*</code> environment variables:</p>
-<pre><code>$ export SB_BROKER_URL=http://$IP:3000
-$ export SB_BROKER_USERNAME=blacksmith
-$ export SB_BROKER_PASSWORD=$(safe read secret/your/env/name/blacksmith/broker:password)
-</code></pre>
-<p>You can verify that your local environment is properly configured
-by querying the Blacksmith service catalog:</p>
-<pre><code>$ eden catalog
-</code></pre>
-<p>Note: this will be a subset of your actual CF marketplace.
-Otherwise, details should match.</p>
 <h2>Provision a Service via <code>cf</code></h2>
 <p>Cloud Foundry users can create new services using the standard
 process, with the <code>cf</code> command-line utility:</p>
@@ -205,64 +226,151 @@ information will be purged from the Cloud Foundry database, so <code>cf service<
 <p>For more in-depth review of Cloud Foundry services and
 applications, check the <a href="https://docs.cloudfoundry.org/devguide/services/">Service Overview</a> in the official
 Cloud Foundry documentation.</p>
-<h2>Provision a Service via <code>eden</code> (as an Operator)</h2>
-<p>NOTE: This task requires that <code>eden</code> is installed, and properly
-configured to work with your Blacksmith.</p>
-<p>As an operator, you have the ability to bypass Cloud Foundry and
-create service directly in Blacksmith.  This is a powerful
-debugging and diagnostic tool, especially if you suspect that
-Cloud Foundry is somehow responsible for some strange behavior.</p>
-<p><strong>However</strong>, use this technique sparingly.  Services provisioned
-via <code>eden</code>, directly against the Blacksmith broker, will not show
-up in <code>cf services</code>, and only the Blacksmith Management UI itself
-will show you the instance IDs if you lose track of them.  Service
-provisioned out-of-band will also use up quota allocations.</p>
-<p>To provision a service, use <code>eden provision</code></p>
-<pre><code>$ eden provision -s dedicated-redis -p standalone
+<h2>Install <code>boss</code></h2>
+<p><a href="https://github.com/jhunt/boss">boss</a> is a command-line utility for interacting with blacksmith.
+<code>boss</code> can be helpful to see what blacksmith services are running or to
+troubleshoot provisioning services outside of a Cloud Foundry or
+Kubernetes cluster. Blacksmith, like all Cloud Foundry service brokers,
+conforms to OSB. So, you can use other service broker tools to interact
+with Blacksmith, such as <a href="https://github.com/starkandwayne/eden">eden</a>. However, <code>boss</code> is designed specifically
+for Blacksmith which provides it some advantages, such as being able to see
+all services provisioned by Blacksmith, provisioned via <code>boss</code> or otherwise.</p>
+<p>Installation is simple, download the binary for
+your environment from the most recent <a href="https://github.com/jhunt/boss/releases">release</a>, and
+it put in your PATH as <code>boss</code>.</p>
+<h2>Using <code>boss</code> with your Blacksmith</h2>
+<p>Using <code>boss</code> as a Genesis addon, there is no setup required. Genesis will
+hand the creds to <code>boss</code> for the Blacksmith deployment. This can be helpful if
+you are running multiple blacksmiths. You can quickly go between them by
+allowing genesis to handle the creds for each deployment.</p>
+<pre><code>$ genesis do my-env boss [command]
+$ genesis do my-dev-env boss [command]
+$ genesis do my-prod-env boss [command]
 </code></pre>
-<p>Unlike the <code>cf</code> command-line utility, <code>eden</code> will regularly poll
-the broker until the create operation either succeeds or fails.
-In the event of failure, you should check the the Blacksmith
-Management Web UI log (or the logs on the broker VM itself) for
-details.</p>
-<p>Once the operation succeeds, <code>eden</code> will tell you how to bind the
-service to get at the credentials.  It will be something like:</p>
-<pre><code>$ eden bind -i &lt;big-long-identifier-string&gt;
+<p>If you want to be able to use <code>boss</code> independently of Genesis, you can do
+that, too. The easiest way is to export a few environment variables. You
+can find the info for these using genesis.</p>
+<pre><code>$ genesis info my-env
+
+ ...
+
+blacksmith web management UI
+  web url:   http://10.128.80.129:3000
+  username:  blacksmith
+  password:  ...
+
+ ...
+
+$ export BLACKSMITH_URL=http://10.128.80.129:3000
+$ export BLACKSMITH_USERNAME=blacksmith
+$ export BLACKSMITH_PASSWORD= ...
 </code></pre>
-<h2>Remove a Service via <code>eden</code></h2>
-<p>NOTE: This task requires that <code>eden</code> is installed, and properly
-configured to work with your Blacksmith.</p>
-<p>It is important to keep in mind that each operator has their own
-local <code>eden</code> configuration.  This is where <code>eden</code> stores
-information about services it has provisioned.  That means that if
-someone on your team has used <code>eden</code> to provision a service, you
-won’t see that instance when you run <code>eden services</code> - you will
-only see the services <em>you</em> have provisioned.</p>
-<p>It is also important to remember that <code>eden</code> has no way of knowing
-what services <em>Cloud Foundry itself</em> has provisioned.</p>
-<p>Luckily, most of that doesn’t matter, since <code>eden</code> does let you
-deprovision a service by its instance ID.  You can get the
-instance ID of a service from <code>cf service --guid my-service</code>, or
-from the Blacksmith Management Web UI.</p>
-<p>To delete a service directly:</p>
-<pre><code>$ eden deprovision -i &lt;big-long-identifier-string&gt;
+<p><code>boss</code> also supports these being passed in as command line arguments.</p>
+<pre><code>-U, --url       (required) URL of Blacksmith
+                Defaults to $BLACKSMITH_URL
+
+-u, --username  (required) Blacksmith username.
+                Defaults to $BLACKSMITH_USERNAME
+
+-p, --password  (required) Blacksmith password.
+                Defaults to $BLACKSMITH_PASSWORD
 </code></pre>
-<p><code>eden</code> will poll Blacksmith until the delete operation succeeds or
-fails.  In the event of failure, you should check the the
-Blacksmith Management Web UI log (or the logs on the broker VM
-itself) for details.</p>
-<h2>Clean Up Blacksmith via <code>eden</code></h2>
-<p>NOTE: This task requires that <code>eden</code> is installed, and properly
-configured to work with your Blacksmith.</p>
-<p>Blacksmith currently fails to understand the responses from newer
-BOSH directors (264.5+) to the <em>delete deployment</em> API call, which
-cause it to mistakenly believe that the deletion failed.</p>
-<p>Until that bug gets fixed and a new Kit released, you can use
-<code>eden</code> to <em>double-delete</em> a service instance.  When Blacksmith
-goes to delete the (deleted) service deployment, it will notice
-that the deployment is gone, and go through its normal cleanup
-routines.</p>
-<pre><code>$ eden deprovision -i &lt;big-long-identifier-string&gt;
+<h2>Provisioning Services via <code>boss</code></h2>
+<p><code>boss</code> allows you to bypass Cloud Foundry or Kubernetes and create
+services directly in Blacksmith. This can be extremely useful in
+debugging and diagnosing service related issues, especially if
+Cloud Foundry or Kubenetes seem to be responsible for some
+strange behavior.</p>
+<p>That said, be sure use this tool responsibly. Services provisioned via <code>boss</code> are
+done so directly with the Blacksmith broker. These services <em><strong>will</strong></em> appear in the
+Blacksmith Management UI and these services <em><strong>will</strong></em> still count against
+your service quotas, but <em><strong>will not</strong></em> show up in <code>cf services</code>. This can
+make services provisioned using this tool easy to forget about, so remember to
+clean up after yourself when debugging in this manor.</p>
+<p>To see what services are available, use <code>boss catalog</code></p>
+<pre><code>$ genesis do my-env boss catalog
+Running boss addon for my-env
+Service     Plans          Tags
+=======     =====          ====
+mariadb     standalone     blacksmith
+                           dedicated
+                           mariadb
+
+postgresql  small-cluster  blacksmith
+            standalone     dedicated
+                           postgresql
+
+rabbitmq    small-cluster  blacksmith
+            standalone     dedicated
+                           rabbitmq
+
+redis       standalone     blacksmith
+                           dedicated
+                           redis
+</code></pre>
+<p>To provision a service, use <code>boss create</code></p>
+<pre><code>$ genesis do my-env boss create redis/standalone
+Running boss addon for my-env
+redis/standalone instance jolly-minsky created.
+</code></pre>
+<h2>Using <code>boss</code> to Interact with Services</h2>
+<p>To see what services are running, use <code>boss list</code>. This list all services
+provisioned on the specified Blacksmith, <code>boss</code> provisioned or otherwise.</p>
+<pre><code>$ genesis do my-env boss list
+Running boss addon for my-env
+ID                                    Service  Plan
+==                                    =======  ====
+85036887-0030-4707-a496-02b51f41a08f  mariadb  standalone
+jolly-minsky                          redis    standalone
+</code></pre>
+<p>You can get information about a service using the commands: <code>boss creds</code>,
+<code>boss manifest</code>, and <code>boss task</code>.</p>
+<p><code>boss creds</code> and <code>boss task</code> can throw a <code>500</code> error. <code>creds</code>
+will not work until the service is fully deployed and <code>task</code> needs the
+deployment task to have started before it will return properly.</p>
+<pre><code>$ genesis do my-env boss task jolly-minsky
+Running boss addon for my-env
+# jolly-minsky
+Task 496 | 15:52:17 | Preparing deployment: Preparing deployment started
+Task 496 | 15:52:18 | Preparing deployment: Preparing deployment finished
+Task 496 | 15:52:18 | Preparing deployment: Rendering templates started
+Task 496 | 15:52:18 | Preparing deployment: Rendering templates finished
+Task 496 | 15:52:18 | Preparing package compilation: Finding packages to compile started
+Task 496 | 15:52:18 | Preparing package compilation: Finding packages to compile finished
+Task 496 | 15:52:18 | Creating missing vms: standalone/31d6bb24-abdb-49d4-b928-514281e23f0e (0) started
+
+$ genesis do my-env boss creds jolly-minsky
+Running boss addon for my-env
+!!! API 500 Internal Server Error
+
+$ genesis do my-env boss task jolly-minsky
+Running boss addon for my-env
+# jolly-minsky
+Task 496 | 15:52:17 | Preparing deployment: Preparing deployment started
+Task 496 | 15:52:18 | Preparing deployment: Preparing deployment finished
+Task 496 | 15:52:18 | Preparing deployment: Rendering templates started
+Task 496 | 15:52:18 | Preparing deployment: Rendering templates finished
+Task 496 | 15:52:18 | Preparing package compilation: Finding packages to compile started
+Task 496 | 15:52:18 | Preparing package compilation: Finding packages to compile finished
+Task 496 | 15:52:18 | Creating missing vms: standalone/31d6bb24-abdb-49d4-b928-514281e23f0e (0) started
+Task 496 | 15:53:48 | Creating missing vms: standalone/31d6bb24-abdb-49d4-b928-514281e23f0e (0) finished
+Task 496 | 15:53:48 | Updating instance: standalone/31d6bb24-abdb-49d4-b928-514281e23f0e (0) (canary) started
+Task 496 | 15:54:06 | Updating instance: standalone/31d6bb24-abdb-49d4-b928-514281e23f0e (0) (canary) finished
+
+$ genesis do my-env boss creds jolly-minsky
+Running boss addon for my-env
+# jolly-minsky
+host: 10.128.80.195
+password: ...
+port: 6379
+</code></pre>
+<h2>Cleaning Up After <code>boss</code></h2>
+<p>This is a reminder that services provisioned with <code>boss</code> <em><strong>will not</strong></em>
+show up in <code>cf services</code>, but <em><strong>will</strong></em> count against your service quotas.
+Luckily, cleaning up is easy using <code>boss delete</code></p>
+<pre><code>$ genesis do my-env.yml boss delete jolly-minsky
+Running boss addon for my-env
+jolly-minsky instance deleted.
 </code></pre>
 <h2>Troubleshoot Service Failures</h2>
 <p>If a service fails to deploy, Cloud Foundry users will not get
@@ -344,16 +452,20 @@ VM itself.</p>
 <p>For more advanced troubleshooting, you may need to SSH into a VM
 on a service deployment.  To do that, you first need to target
 that director.</p>
-<p>First, set up a BOSH alias for the Blacksmith BOSH director:</p>
-<pre><code>$ bosh -e https://$IP:25555 \
-       --ca-cert &lt;(safe read secret/your/env/name/blacksmith/tls/ca:certificate) \
-       alias-env your-env-blacksmith
-</code></pre>
-<p>Then, login with the <code>admin</code> credentials:</p>
-<pre><code>$ safe read secret/your/env/name/blacksmith/users/admin:password
-secret-password-here
+<p>Run the <code>bosh</code> Genesis addon:</p>
+<pre><code>$ genesis do my-env bosh
+Running bosh addon for my-env
+Logging you in as user 'admin'...
+Using environment 'https://10.128.80.129:25555'
 
-$ bosh -e your-env-blacksmith login
+Username (): admin
+Password ():
+
+Using environment 'https://10.128.80.129:25555' as client 'admin'
+
+Logged in to 'https://10.128.80.129:25555'
+
+Succeeded
 </code></pre>
 <p>From there, you can run all the normal BOSH commands against the
 director.  You can SSH into deployments, check VM health, etc.</p>

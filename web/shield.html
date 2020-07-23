@@ -26,8 +26,6 @@
     <p>Shield is a data protection system that performs unattended and
 automatic backup tasks, according to a schedule you define.</p>
 <h2>Install the SHIELD CLI</h2>
-<p>The SHIELD CLI (v8+) does not currently come pre-installed on the
-Genesis-deployed jumpbox.</p>
 <p>The SHIELD project makes pre-compiled binaries available for
 download on its <a href="https://github.com/starkandwayne/shield/releases">Github releases page</a>.  Download the
 correct binary for your platform, make it executable, and put it
@@ -84,8 +82,7 @@ my-shield  https://10.200.130.8  yes
 given to <code>shield api</code>) and whether or not the <code>shield</code> CLI will
 verify the TLS certificates that the SHIELD Core presents.</p>
 <h2>Initialize a SHIELD</h2>
-<p>When SHIELD is first deployed, it has a blank Vault, and cannot do
-much of anything.  An operator must first <em>initialize</em> the SHIELD,
+<p>When SHIELD is first deployed, it has a blank Vault, and cannot do much of anything.  An operator must first <em>initialize</em> the SHIELD,
 selecting a master password in the process.</p>
 <p>This master password will be used to encrypt the Vault
 credentials.  SHIELD does not keep any record of this password.
@@ -113,12 +110,8 @@ C2CCAE48296508FA4DBFEBDFBD18A5C0389689F12650D17358B0BC4235A023F4
 <p>This <em>fixed key</em> is necessary for backing up SHIELD itself.  Store
 it somewhere safe, probably next to your master password.</p>
 <p>If you prefer the web interface, all you need to do is log in.
-In the header pane, you should see a message about SHIELD being
-<strong>uninitialized</strong>, like this:</p>
-<p><img src="images/shield/ui-uninit.png" alt="SHIELD Uninitialized Header"></p>
-<p>Clicking on any link in the main panel will bring up the
-initialization screen:</p>
-<p><img src="images/shield/ui-init.png" alt="SHIELD Initialization Form"></p>
+Your first time logging into SHIELD will walk you through the process of initializing the core.</p>
+<p><img src="images/shield/updated-init.png" alt="SHIELD init"></p>
 <p>Enter your new master password, twice, and SHIELD will go
 configure itself and unlock.  As with the CLI method, you will be
 presented with a <em>fixed key</em> that will be used for specific
@@ -136,7 +129,7 @@ generate encryption keys.</p>
 <p>In contrast, system-level operators logging into the web
 interface will be unable to do anything until they provide the
 master password to unlock.</p>
-<p><img src="images/shield/ui-locked.png" alt="SHIELD Locked Screen"></p>
+<p><img src="images/shield/updated-locked.png" alt="SHIELD Locked Screen"></p>
 <p>This can also be accomplished from the command-line:</p>
 <pre><code>$ shield unlock
 SHIELD Core master password:
@@ -154,6 +147,7 @@ New SHIELD Core master password:
 Confirm new master password:
 SHIELD core rekeyed successfully.
 </code></pre>
+<p>This can also be accomplished in the web UI under <code>rekey SHIELD core</code> in the admin panel</p>
 <p>The new master password will be required the next time SHIELD is
 rebooted.</p>
 <h2>What is a “tenant” / Why do I need one?</h2>
@@ -193,7 +187,7 @@ sidebar:</p>
 <p><img src="images/shield/cfg-sidebar.png" alt="Configure Backup Job Sidebar"></p>
 <p>This is a three-stage wizard.  First, you’ll configure your target
 data system, the thing you want to back up.</p>
-<p><img src="images/shield/cfg-target.png" alt="Configure Target Data System"></p>
+<p><img src="images/shield/updated-wizard.png" alt="Configure Target Data System"></p>
 <p>The <em>Name</em> is important; it’s how you and other operators will
 refer to the system, and how SHIELD will display the system on the
 <em>Systems</em> page.  Make it memorable, and unique.</p>
@@ -207,23 +201,20 @@ facilitate data exchange.</p>
 for extracting data from the system, and then configure that
 plugin:</p>
 <p><img src="images/shield/cfg-target-plugin.png" alt="Plugin Selection and Configuration"></p>
-<p>Next, you’ll configure the schedule for your new backup job:</p>
-<p><img src="images/shield/cfg-schedule.png" alt="Job Schedule Selection"></p>
-<p>Then, configure the retention policy, either by selecting a
-pre-existing one, or creating a new one:</p>
-<p><img src="images/shield/cfg-retention.png" alt="Job Retention Policy Select"></p>
 <p>Next, select where to keep the backup archives, or configure a new
 storage system:</p>
-<p><img src="images/shield/cfg-store.png" alt="Job Storage Selection"></p>
+<p><img src="images/shield/updated-storage.png" alt="Job Storage Selection"></p>
+<p>Next, you’ll configure the schedule for your new backup job as well the retention of the archives created by this job:</p>
+<p><img src="images/shield/updated-schedule.png" alt="Job Schedule Selection"></p>
 <p>Finally, review your new job details and click the save button.</p>
-<p><img src="images/shield/cfg-review.png" alt="Job Review"></p>
+<p><img src="images/shield/updated-review.png" alt="Job Review"></p>
 <h2>Execute a Backup Job Manually</h2>
 <p>SHIELD let’s you kick off ad hoc backup job runs, either via the
 command-line, or the web interface.  In either case, the scheduled
 runs of the backup job are unperturbed.</p>
-<p>From the web interface, you can click the <em>run now</em> link from the
-job’s heads-up card:</p>
-<p><img src="images/shield/run-now.png" alt="Job Card &quot;run now&quot; Link"></p>
+<p>From the web interface, you can click the <em>run</em> link from the
+job’s details under the target view:</p>
+<p><img src="images/shield/updated-run.png" alt="Job Card &quot;run now&quot; Link"></p>
 <p>From the command-line, first get a list of jobs:</p>
 <pre><code>$ shield jobs
 UUID                                  Name   Summary  Schedule       Status  Policy      SHIELD Agent       Target           Store       Fixed-Key
@@ -244,15 +235,14 @@ linked from the sidebar:</p>
 <p>This wizard will ask a few questions, to help you find the right system to
 restore, and the correct archive to pull back and replay.  First, what do
 you need to restore?</p>
-<p><img src="images/shield/restore-target.png" alt="Restore Target Selection"></p>
+<p><img src="images/shield/updated-restore-system.png" alt="Restore Target Selection"></p>
 <p>Next, SHIELD will show you all of the archives that have been made from this
 target system, and gives a lot more prominence and visual weight to the most
 recent one.</p>
-<p><img src="images/shield/restore-archive.png" alt="Restore Archive Selection"></p>
+<p><img src="images/shield/updated-restore-archives.png" alt="Restore Archive Selection"></p>
 <p>Finally, you get to a review screen, to make sure you are certain that you
 want to perform this operation.  Remember: data restoration can be a
 disruptive process.</p>
-<p><img src="images/shield/restore-review.png" alt="Restore Operation Review"></p>
 <p>You can also do this via the command-line.  First get a list of protected
 data systems:</p>
 <pre><code>$ shield targets
@@ -295,15 +285,6 @@ not be able to view the configuration of this global storage, but will be
 able to configure their backup jobs to use it.</p>
 <p>You can create a global cloud storage system from the <em>SHIELD Admin
 Backend</em>:</p>
-<p><img src="images/shield/admin-backend.png" alt="Admin Backend"></p>
-<h2>Can I Share Retention Policies Across Tenants?</h2>
-<p>Sort of.</p>
-<p>Unlike global cloud storage, retention policies are strictly per-tenant.
-What you <em>can</em> do, however, is define <em>Retention Policy Templates</em>, which
-will be copied into every subsequent tenant you create.  They look just like
-regular retention policies, but if a user modified their copy, it won’t
-affect any other tenants.</p>
-<p>You can create a retention policy template from the <em>SHIELD Admin Backend</em>:</p>
 <p><img src="images/shield/admin-backend.png" alt="Admin Backend"></p>
 <h2>View Backup Tasks</h2>
 <p>To view tasks for a single data system, access the <em>timeline view</em> for that

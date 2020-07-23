@@ -23,7 +23,7 @@
   </header>
 
   <div id="m">
-    <p>Vault is a secure secret store by Hashicorp.  Safe is a CLI for
+    <p>ault is a secure secret store by Hashicorp.  Safe is a CLI for
 Vault that is more user-friendly and powerful than the native
 Vault CLI.  For more information, refer to the <a href="https://www.vaultproject.io/docs/concepts">Vault
 documentation</a> and the <a href="https://github.com/starkandwayne/safe/blob/master/README.md">Safe guide</a>.</p>
@@ -32,54 +32,41 @@ from <a href="https://github.com/starkandwayne/safe/releases">Github</a>.</p>
 <h2>Initialize Vault</h2>
 <p>Ideally, you deployed your Vault using the <code>vault-genesis-kit</code> via
 a Genesis deployment.  Doing so uses the safe-boshrelease, which
-gives you a convenient routine to initialize your vault: <code>safe init</code>.</p>
-<p>First you will need to target the new vault as per the <a href="#target-and-authenticate-to-a-vault">Target and
-Authenticate to a Vault</a>
-section below.  You also need to “pretend” to authenticate with a
-bogus token, also covered in that section.</p>
-<p>Next, run <code>safe init</code>.  This will output five unseal keys and the
+gives you a convenient routine to initialize your vault:
+<code>genesis do my-env -- init</code>.</p>
+<p>Running <code>genesis do my-env -- init</code> will output five unseal keys and the
 root token.  Store these in a secure location, such as 1Password,
 another Vault, etc.</p>
 <p>This initialization will automatically unseal the vault, so you
 don’t have to <a href="#unseal-the-vault">do it manually</a>.  It also
 creates a test secret <code>secret/handshake</code> for testing.</p>
-<p>If you’re not using Genesis, you must manually initialize the
-vault using <code>safe vault operator init</code> after targeting, then
-<a href="#unseal-the-vault">manually unsealing</a>, and then authenticating to
-the new Vault, and finally adding the test secret using <code>safe set secret/handshake knock=knock</code>.</p>
 <h2>Target and Authenticate to a Vault</h2>
 <p>Before you can access Vault, you must first target and
-authenticate to it using Safe.  You need to know the IP address or
-fully-qualified domain name of your Vault server, whether it is
-using HTTPS (recommended) or HTTP, and if it has a self-signed certificate.</p>
-<p>To find the Vault IP addresses from BOSH, you can run the
-following command:</p>
-<pre><code>$ bosh -d your-vault vms
-Instance  Process State  AZ  IPs           VM CID       VM Type
-vault/0   running        z1  10.200.130.6  vm-98627dfd  small
-vault/1   running        z1  10.200.130.5  vm-5c9638b1  small
-vault/2   running        z1  10.200.130.4  vm-a59d7f16  small
+authenticate to it using Safe.</p>
+<p>Easiest way to do this is with <code>genesis do my-env target</code>. Give it the token
+that was generated on init to target and authenticate to the vault.</p>
+<pre><code>$ genesis do my-env target
+Running target addon for my-env
+
+Specifying --target to the target command makes no sense; ignoring...
+Currently targeting my-env at https://10.128.80.12
+Skipping TLS certificate validation
+Uses Strongbox at http://10.128.80.12:8484/strongbox
+
+Authenticating against my-env at https://10.128.80.12
+Token:
+
+Retrieving status of Vault via node 10.128.80.12
+https://10.128.80.12:443 is unsealed
+https://10.128.80.13:443 is unsealed
+https://10.128.80.14:443 is unsealed
 </code></pre>
-<p>For example, if your Vault is located at
-<code>secrets.cloud.mycorp.com</code> and uses a certificate signed by a
-third-party certificate authority, and you want to refer to this
-Vault as <code>myvault</code>, you can create a target for this Vault with
-the following command:</p>
-<pre><code>$ safe target https://secrets.cloud.mycorp.com myvault
-</code></pre>
-<p>If instead you are using a self-signed certificate, you would add
-a <code>-k</code> option to that command.  Furthermore, if you target an IP
-address directly without TLS (on an internal network, for
-example), you have to issue a command similar to:</p>
-<pre><code>$ safe target http://10.0.200.44 lab-vault
-</code></pre>
-<p>to create a target named <code>lab-vault</code> that targets a Vault at
-<a href="http://10.0.200.44">10.0.200.44</a> without TLS.</p>
 <p>To see your targets, run the <code>safe targets</code> command:</p>
 <pre><code>$ safe targets
 
 Known Vault targets - current target indicated with a (*):
-(*) lab-vault   (insecure) http://10.0.200.44
+(*) my-env      (noverify) https://10.128.80.12
+    lab-vault   (insecure) http://10.0.200.44
     myvault                https://secrets.cloud.mycorp.com
 </code></pre>
 <p>Once you have targets, you can switch between them by running the
@@ -173,6 +160,9 @@ the json and manually change the path, or use <code>jq</code>:</p>
     jq -Mc &quot;.secret.your.prod.bosh | {'secret': {'your': {'staging': {'bosh': .}}}}&quot; | \
     safe import
 </code></pre>
+<p>You can also backup your credentials in Vault using <a href="https://shieldproject.io/">shield</a>. Shield has a
+plugin for Vault which you can use to backup and restore Vault. The web UI is pretty
+straitforward to follow. You can also get more details <a href="http://runbooks.starkandwayne.com/shield.html">here</a>.</p>
 <h2>Copy Secrets to a Different Vault</h2>
 <p>You can use <code>export</code> + <code>import</code> to copy secrets form one targeted
 Vault to another:</p>
@@ -181,7 +171,7 @@ Vault to another:</p>
 <p>You must be authenticated to both Vaults before running this command.</p>
 <h2>Change a Secret</h2>
 <p>Before you try to change a secret manually, consider if it can be
-rotated using Genesis.  Genesis has a <code>secrets rotate</code> command
+rotated using Genesis.  Genesis has a <code>rotate-secrets</code> command
 that rotates secrets for the named environment.</p>
 <p>Other secrets can be changed by <code>safe set</code></p>
 <pre><code>$ safe set secret/to/change key=value
@@ -204,57 +194,59 @@ expects to find the value of the secret <em>inside</em> the named file.</p>
 <h2>Unseal The Vault</h2>
 <p>When you initialized your Vault, you were given 5 unseal keys,
 along with the root token.  These will have been stored in
-1Password, LastPass, or something similar.  Whenever you apply
-updates to your Vault installation, or recreate its VMs, the Vault
-will come up in <em>sealed</em>, and won’t let anyone (not even
-authenticated users!) extract secrets.</p>
+1Password, LastPass, or something similar.  Genesis also stores
+these keys inside the vault so that it can grab them prior to performing
+updates and unseal the updated vault automatically.  Otherwise, whenever you
+apply updates to your Vault installation manually (not recommended), or
+recreate its VMs, the Vault will come up in <em>sealed</em>, and won’t let anyone
+(not even authenticated users!) extract secrets.</p>
 <p>The Genesis Vault kit deploys a component called <code>strongbox</code> that
 makes it trivial to unseal the Vault.  This activates three
-commands in <code>safe</code>:</p>
+commands in <code>genesis</code>:</p>
 <ol>
-<li><code>safe status</code> - Check whether the Vault is sealed or not</li>
-<li><code>safe unseal</code> - Unseal all of the Vault nodes</li>
-<li><code>safe seal</code> - Seal all of the Vault nodes</li>
+<li><code>genesis do my-env status</code> - Check whether the Vault is sealed or not</li>
+<li><code>genesis do my-env unseal</code> - Unseal all of the Vault nodes</li>
+<li><code>genesis do my-env seal</code>   - Seal all of the Vault nodes</li>
 </ol>
-<pre><code>$ safe status
-https://10.200.130.6:443 is sealed
-https://10.200.130.4:443 is sealed
-https://10.200.130.5:443 is sealed
+<pre><code>$ genesis do my-env status
+Running status addon for my-env
+
++ safe -T my-env status
+https://10.128.80.12:443 is sealed
+https://10.128.80.13:443 is sealed
+https://10.128.80.14:443 is sealed
 </code></pre>
 <p>To unseal the Vault, run the following command and enter any three
 of the five unseal keys:</p>
-<pre><code>$ safe unseal
+<pre><code>$ genesis do my-env unseal
+Running unseal addon for my-env
+
++ safe -T my-env unseal
 You need 3 key(s) to unseal the vaults.
 
 Key #1:
 Key #2:
 Key #3:
-unsealing https://10.200.130.4:443...
-unsealing https://10.200.130.5:443...
-unsealing https://10.200.130.6:443...
+unsealing https://10.128.80.12:443...
+unsealing https://10.128.80.13:443...
+unsealing https://10.128.80.14:443...
 </code></pre>
 <p>The keys won’t be echoed to the screen, so be sure to copy them
 accurately.  To confirm the Vault is now unsealed, run <code>safe status</code> again:</p>
-<pre><code>$ safe status
-https://10.200.130.6:443 is unsealed
-https://10.200.130.4:443 is unsealed
-https://10.200.130.5:443 is unsealed
+<pre><code>$ genesis do my-env status
+Running status addon for my-env
+
++ safe -T my-env status
+https://10.128.80.12:443 is unsealed
+https://10.128.80.13:443 is unsealed
+https://10.128.80.14:443 is unsealed
 </code></pre>
-<p>If you are using a Vault that was not deployed by Genesis, you
-will have to manually unseal each Vault node, individually.</p>
-<p>For each IP (which you can get via <code>bosh vms</code>): IP, run:</p>
-<pre><code>safe vault operator unseal --address &lt;protocol://ip:port&gt;
-</code></pre>
-<p>This will prompt you for one (and only one) key.  Keep running
-that command until enough keys have been entered, and then move
-onto the next IP.</p>
 <h2>Common Errors and Their Solutions</h2>
 <p>You may encounter the following errors when using <code>safe</code>.  Here’s
 some suggestions for things to try to move past them.</p>
 <h3><code>!! API 503 Service Unavailable</code></h3>
 <p>The Vault is likely sealed, and it needs to be unsealed before it
-can be accessed.  This will happen every time you update or
-redeploy the Vault.  Unseal your Vault and everything should start
+can be accessed.  Unseal your Vault and everything should start
 working again.</p>
 <h3><code>!! API 403 Forbidden</code></h3>
 <p>You are not correctly authenticated to the targeted Vault. Try
