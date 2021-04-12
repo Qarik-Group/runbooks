@@ -183,7 +183,7 @@ for what resources it uses by name, and how to overwrite them if
 necessary.
 
 Once deployed, Genesis will store a redacted version of the
-manifest under `.genesis.manifests.<my-env-name>.yml`.  You will
+manifest under `.genesis/manifests/<my-env-name>.yml`.  You will
 want to commit this to your repository after each deployment so you have
 a local copy of the currently deployed manifest for future
 reference.  When deployments are done by the Genesis-created
