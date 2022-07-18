@@ -638,4 +638,4 @@ Redeploy the service by running:
 bosh -e blacksmith-bosh-env-name -d service-deployment-name deploy service-deployment-name.yml
 ```
 
-Note: BOSH will stop stop the service, wait for the process to finish, then terminate the stemcell, boot the new service and attach the disk and start it.
+Note: BOSH will stop the service, wait for the process to finish, then terminate the stemcell, boot the new service and attach the disk and start it.
