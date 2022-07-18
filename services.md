@@ -604,3 +604,38 @@ director.  You can SSH into deployments, check VM health, etc.
 All of your tasks will be attributed to the `admin` user.
 Blacksmith itself uses the `blacksmith` user so as not to confuse
 things.
+
+
+## Update the stemcell of a running service
+
+Blacksmith deploys all of its service deployments by way of an
+internal BOSH director. So the services' stemcells are managed by that internal BOSH director. 
+To update the stemcell of any running service, you have to first target the internal BOSH director 
+as mention above. 
+
+Upload to the internal BOSH director the stemcell you wish to update to by running:
+```
+bosh -e blacksmith-bosh-env-name upload-stemcell --sha1 7734f7ef195dacc369802dee785a320ca6512383 \
+  https://bosh.io/d/stemcells/bosh-vsphere-esxi-ubuntu-bionic-go_agent?v=1.91
+```
+Next get the manifest of the running service by running:
+```
+bosh -e blacksmith-bosh-env-name -d service-deployment-name manifest > service-deployment-name.yml
+```
+
+Edit the stemcell section of service-deployment-name.yml:
+```
+stemcells:
+- alias: "default"
+  os: "ubuntu-bionic"
+  version: "1.91"
+```
+
+Save service-deployment-name.yml.
+
+Redeploy the service by running:
+```
+bosh -e blacksmith-bosh-env-name -d service-deployment-name deploy service-deployment-name.yml
+```
+
+Note: BOSH will stop the service, wait for the process to finish, then terminate the stemcell, boot the new service and attach the disk and start it.
