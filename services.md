@@ -609,11 +609,11 @@ things.
 ## Update the stemcell of a running service
 
 Blacksmith deploys all of its service deployments by way of an
-internal BOSH director. So the services' stemcells are managed by that internal BOSH director. 
-To update the stemcell of any running service, you have to first target the internal BOSH director 
+BOSH director (internal or external). So the services' stemcells are managed by that BOSH director. 
+To update the stemcell of any running service, you have to first target the Blacksmith's BOSH director 
 as mention above. 
 
-Upload to the internal BOSH director the stemcell you wish to update to by running:
+Upload to the Blacksmith's BOSH director the stemcell you wish to update to by running:
 ```
 bosh -e blacksmith-bosh-env-name upload-stemcell --sha1 7734f7ef195dacc369802dee785a320ca6512383 \
   https://bosh.io/d/stemcells/bosh-vsphere-esxi-ubuntu-bionic-go_agent?v=1.91
